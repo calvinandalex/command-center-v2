@@ -109,11 +109,15 @@ let agentStates = {};
 // Separate queue for items waiting on Calvin - persists regardless of agent location
 let waitingQueue = [];
 
+// Supabase config for checking responses
+const SUPABASE_URL = 'https://wfwglzrsuuqidscdqgao.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmd2dsenJzdXVxaWRzY2RxZ2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTI4MDcsImV4cCI6MjA4NTM4ODgwN30.Tpnv0rJBE1WCmdpt-yHzLIbnNrpriFeAJQeY2y33VlM';
+
 // Load initial states from localStorage or use defaults
-function loadAgentStates() {
+async function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '3.0'; // Only show real queue items with context, no placeholders
+    const CURRENT_VERSION = '3.1'; // Supabase-aware version - filters out already-responded items
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
@@ -134,17 +138,46 @@ function loadAgentStates() {
         agentStates = getDefaultStates();
     }
     
-    // Load waiting queue separately
-    const savedQueue = localStorage.getItem('waitingQueue');
-    if (savedQueue) {
-        try {
-            waitingQueue = JSON.parse(savedQueue);
-        } catch(e) {
-            waitingQueue = getDefaultWaitingQueue();
+    // Load waiting queue - always start with defaults, then filter by Supabase responses
+    waitingQueue = getDefaultWaitingQueue();
+    
+    // Check Supabase for items that have already been responded to
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/calvin_responses?select=item_id`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        
+        if (response.ok) {
+            const respondedItems = await response.json();
+            const respondedIds = new Set(respondedItems.map(r => r.item_id));
+            
+            // Filter out items that already have responses
+            const beforeCount = waitingQueue.length;
+            waitingQueue = waitingQueue.filter(item => !respondedIds.has(item.id));
+            const afterCount = waitingQueue.length;
+            
+            if (beforeCount !== afterCount) {
+                console.log(`Filtered ${beforeCount - afterCount} already-responded items from queue`);
+            }
         }
-    } else {
-        waitingQueue = getDefaultWaitingQueue();
+    } catch (err) {
+        console.error('Failed to check Supabase for responses:', err);
+        // Continue with localStorage fallback
+        const savedQueue = localStorage.getItem('waitingQueue');
+        if (savedQueue) {
+            try {
+                waitingQueue = JSON.parse(savedQueue);
+            } catch(e) {
+                // Keep the default queue already loaded
+            }
+        }
     }
+    
+    // Save the filtered state
+    localStorage.setItem('waitingQueue', JSON.stringify(waitingQueue));
     
     // Sync visual states - agents with items in queue should show as waiting
     syncVisualStatesWithQueue();
@@ -350,7 +383,7 @@ function saveAgentStates() {
     window.dispatchEvent(new CustomEvent('waitingQueueUpdated', { detail: waitingQueue }));
 }
 
-function initOffice() {
+async function initOffice() {
     canvas = document.getElementById('office-canvas');
     if (!canvas) return;
     
@@ -358,8 +391,8 @@ function initOffice() {
     canvas.height = CANVAS_HEIGHT;
     ctx = canvas.getContext('2d');
     
-    // Load states
-    loadAgentStates();
+    // Load states (async - checks Supabase for already-responded items)
+    await loadAgentStates();
     
     // Initial positioning
     updateAgentPositions();
