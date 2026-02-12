@@ -113,7 +113,7 @@ let waitingQueue = [];
 function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '2.7'; // Added Leo to waiting queue, fixed chair positions, debug Team tab
+    const CURRENT_VERSION = '2.8'; // Bidirectional sync - visual waiting auto-creates queue items
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
@@ -154,10 +154,11 @@ function syncVisualStatesWithQueue() {
     // Get all agent IDs that have items in the waiting queue
     const agentsWithWaitingItems = new Set(waitingQueue.map(item => item.agentId));
     
-    // Update visual states - agents with queue items should be in Calvin's office
+    // BIDIRECTIONAL SYNC:
+    
+    // 1. Queue → Visual: agents with queue items should show as waiting
     for (const agentId of agentsWithWaitingItems) {
         if (agentStates[agentId] && agentStates[agentId].state !== 'waiting') {
-            // They have a waiting item but aren't visually waiting - update
             const queueItem = waitingQueue.find(i => i.agentId === agentId);
             if (queueItem) {
                 agentStates[agentId].state = 'waiting';
@@ -166,13 +167,32 @@ function syncVisualStatesWithQueue() {
         }
     }
     
-    // Also: agents visually waiting but without queue items should go back to working
+    // 2. Visual → Queue: agents visually waiting should have queue items
     for (const [agentId, state] of Object.entries(agentStates)) {
         if (state.state === 'waiting' && !agentsWithWaitingItems.has(agentId)) {
-            agentStates[agentId].state = 'working';
-            agentStates[agentId].task = 'Back to work';
+            // Agent is in Calvin's office but has no queue item - CREATE ONE
+            const newItem = {
+                id: `${agentId}-auto-${Date.now()}`,
+                agentId: agentId,
+                createdAt: Date.now(),
+                title: state.task || 'Needs your attention',
+                desc: `${getAgentName(agentId)} is waiting in your office`,
+                context: state.task ? `Current task: ${state.task}` : 'Click to see details',
+                whatINeed: ['Your input or decision'],
+                whyItMatters: 'Agent is blocked waiting for you',
+                deadline: '',
+                alternatives: ''
+            };
+            waitingQueue.push(newItem);
+            console.log(`Auto-added ${agentId} to waiting queue`);
         }
     }
+}
+
+// Helper to get agent display name
+function getAgentName(agentId) {
+    const agent = agents.find(a => a.id === agentId);
+    return agent ? agent.name : agentId;
 }
 
 function getDefaultWaitingQueue() {
@@ -329,6 +349,9 @@ function getDefaultStates() {
 }
 
 function saveAgentStates() {
+    // Sync before saving to ensure queue matches visual state
+    syncVisualStatesWithQueue();
+    
     localStorage.setItem('agentStates', JSON.stringify(agentStates));
     localStorage.setItem('waitingQueue', JSON.stringify(waitingQueue));
     // Dispatch event for Command Center to pick up
