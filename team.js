@@ -134,7 +134,7 @@ const teamProfiles = {
         training: 'Trading strategies, position sizing, crypto markets, prediction markets.',
         askMeAbout: ['Current positions', 'Trade rationale', 'Portfolio status', 'Market outlook']
     },
-    sky: {
+    skye: {
         name: 'Sky',
         role: 'Travel Coordinator',
         color: '#14b8a6',
@@ -306,7 +306,7 @@ function getHairColor(agentId) {
         randy: '#6b4423',
         annie: '#d4a574',
         ivan: '#1a1a1a',
-        sky: '#2c1810',
+        skye: '#2c1810',
         leo: '#4a3728',
         clara: '#d4a574',
         simon: '#666666',
