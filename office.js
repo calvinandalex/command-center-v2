@@ -79,9 +79,9 @@ const layout = {
     calvinsOffice: {
         x: 550, y: 560, w: 300, h: 180,
         desk: { x: 700, y: 660 },
-        queue: [
-            { x: 590, y: 610 }, { x: 650, y: 610 }, { x: 710, y: 610 },
-            { x: 590, y: 680 }, { x: 650, y: 680 }, { x: 710, y: 680 }
+        meetingSpots: [
+            { x: 600, y: 620 }, { x: 660, y: 620 },
+            { x: 600, y: 680 }, { x: 660, y: 680 }
         ],
         inside: { x: 760, y: 660 }
     }
@@ -102,7 +102,7 @@ let waitingQueue = [];
 function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '2.4'; // Layout fix - room labels above rooms, resized offices
+    const CURRENT_VERSION = '2.5'; // Calvin pixel avatar with plaid blazer, meeting chairs, no waiting line
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
@@ -605,39 +605,86 @@ function drawCalvinsOffice() {
     ctx.fillStyle = '#3a2a4e';
     ctx.fillRect(o.desk.x - 50, o.desk.y - 25, 100, 50);
     
-    // Calvin
-    ctx.fillStyle = '#ffd700';
+    // Monitor on desk
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(o.desk.x - 15, o.desk.y - 20, 30, 22);
+    ctx.fillStyle = '#f85149';
+    ctx.fillRect(o.desk.x - 13, o.desk.y - 18, 26, 18);
+    
+    // Calvin - pixel art avatar with plaid blazer
+    const cx = o.desk.x;
+    const cy = o.desk.y + 5;
+    
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.arc(o.desk.x, o.desk.y, 20, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + 22, 14, 5, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#ffed4a';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     
-    ctx.fillStyle = '#1a1015';
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('C', o.desk.x, o.desk.y + 6);
-    
-    // Queue markers
-    ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = '#f85149';
+    // Body - gray plaid blazer
+    ctx.fillStyle = '#6b7280';
+    ctx.fillRect(cx - 12, cy + 2, 24, 20);
+    // Plaid pattern on blazer
+    ctx.strokeStyle = '#9ca3af';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(o.x + 30, o.y + 60);
-    ctx.lineTo(o.x + 200, o.y + 60);
+    ctx.moveTo(cx - 12, cy + 8); ctx.lineTo(cx + 12, cy + 8);
+    ctx.moveTo(cx - 12, cy + 14); ctx.lineTo(cx + 12, cy + 14);
+    ctx.moveTo(cx - 4, cy + 2); ctx.lineTo(cx - 4, cy + 22);
+    ctx.moveTo(cx + 4, cy + 2); ctx.lineTo(cx + 4, cy + 22);
     ctx.stroke();
-    ctx.setLineDash([]);
+    // White shirt collar
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, cy + 2);
+    ctx.lineTo(cx, cy + 8);
+    ctx.lineTo(cx + 6, cy + 2);
+    ctx.fill();
     
-    // Labels - ABOVE the room so agent bubbles don't cover it
+    // Head - fair skin
+    ctx.fillStyle = '#f5d0c5';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 8, 12, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Hair - brown, swept back
+    ctx.fillStyle = '#8b6914';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 16, 11, 6, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(cx - 11, cy - 14, 3, 6);
+    ctx.fillRect(cx + 8, cy - 14, 3, 6);
+    
+    // Stubble
+    ctx.fillStyle = '#c4a87c';
+    ctx.fillRect(cx - 6, cy - 2, 12, 4);
+    
+    // Eyes - light colored
+    ctx.fillStyle = '#6ab7db';
+    ctx.fillRect(cx - 5, cy - 10, 3, 3);
+    ctx.fillRect(cx + 2, cy - 10, 3, 3);
+    
+    // Slight smirk
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, cy - 3);
+    ctx.quadraticCurveTo(cx + 2, cy - 1, cx + 4, cy - 3);
+    ctx.stroke();
+    
+    // Meeting chairs (like Alex's office)
+    o.meetingSpots.forEach(spot => {
+        ctx.fillStyle = '#3a3a5e';
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    // Label - ABOVE the room
     ctx.fillStyle = '#f85149';
     ctx.font = '12px "Press Start 2P"';
     ctx.textAlign = 'center';
     ctx.fillText("CALVIN'S OFFICE", o.x + o.w/2, o.y - 10);
-    
-    ctx.fillStyle = '#888';
-    ctx.font = '8px "Press Start 2P"';
-    ctx.fillText('WAITING LINE', o.x + o.w/2, o.y + 40);
 }
 
 function drawAgent(agent) {
