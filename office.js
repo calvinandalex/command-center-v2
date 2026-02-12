@@ -109,9 +109,9 @@ let agentStates = {};
 // Separate queue for items waiting on Calvin - persists regardless of agent location
 let waitingQueue = [];
 
-// Supabase config for checking responses
-const SUPABASE_URL = 'https://wfwglzrsuuqidscdqgao.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmd2dsenJzdXVxaWRzY2RxZ2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTI4MDcsImV4cCI6MjA4NTM4ODgwN30.Tpnv0rJBE1WCmdpt-yHzLIbnNrpriFeAJQeY2y33VlM';
+// Supabase config for checking responses (defined in app.js, use window to access)
+const OFFICE_SUPABASE_URL = 'https://wfwglzrsuuqidscdqgao.supabase.co';
+const OFFICE_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmd2dsenJzdXVxaWRzY2RxZ2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTI4MDcsImV4cCI6MjA4NTM4ODgwN30.Tpnv0rJBE1WCmdpt-yHzLIbnNrpriFeAJQeY2y33VlM';
 
 // Load initial states from localStorage or use defaults
 async function loadAgentStates() {
@@ -143,10 +143,10 @@ async function loadAgentStates() {
     
     // Check Supabase for items that have already been responded to
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/calvin_responses?select=item_id`, {
+        const response = await fetch(`${OFFICE_SUPABASE_URL}/rest/v1/calvin_responses?select=item_id`, {
             headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                'apikey': OFFICE_SUPABASE_KEY,
+                'Authorization': `Bearer ${OFFICE_SUPABASE_KEY}`
             }
         });
         
