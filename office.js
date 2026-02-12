@@ -47,44 +47,43 @@ const layout = {
         { x: 1100, y: 180, agent: 'henry' }
     ],
     
-    // Conference room - large central area
+    // Conference room - LARGEST room, central area
     conference: {
-        x: 500, y: 280, w: 400, h: 200,
+        x: 450, y: 280, w: 500, h: 220,
         seats: [
-            { x: 560, y: 340 }, { x: 640, y: 340 }, { x: 720, y: 340 }, { x: 800, y: 340 },
-            { x: 560, y: 420 }, { x: 640, y: 420 }, { x: 720, y: 420 }, { x: 800, y: 420 }
+            { x: 520, y: 360 }, { x: 600, y: 360 }, { x: 680, y: 360 }, { x: 760, y: 360 }, { x: 840, y: 360 },
+            { x: 520, y: 440 }, { x: 600, y: 440 }, { x: 680, y: 440 }, { x: 760, y: 440 }, { x: 840, y: 440 }
         ]
     },
     
-    // Break room - left side
+    // Break room - left side (same size as offices)
     breakRoom: {
-        x: 50, y: 320, w: 350, h: 200,
+        x: 50, y: 320, w: 300, h: 180,
         seats: [
-            { x: 100, y: 380 }, { x: 180, y: 380 }, { x: 260, y: 380 },
-            { x: 100, y: 460 }, { x: 180, y: 460 }, { x: 260, y: 460 },
-            { x: 340, y: 380 }, { x: 340, y: 460 }
+            { x: 100, y: 380 }, { x: 170, y: 380 }, { x: 240, y: 380 },
+            { x: 100, y: 450 }, { x: 170, y: 450 }, { x: 240, y: 450 }
         ]
     },
     
-    // Alex's Office (CEO) - right side
+    // Alex's Office (CEO) - right side (same size as break room and Calvin's)
     alexOffice: {
-        x: 1000, y: 320, w: 350, h: 200,
-        desk: { x: 1175, y: 420 },
+        x: 1050, y: 320, w: 300, h: 180,
+        desk: { x: 1200, y: 410 },
         meetingSpots: [
-            { x: 1050, y: 380 }, { x: 1100, y: 380 }, { x: 1150, y: 380 },
-            { x: 1050, y: 440 }, { x: 1100, y: 440 }
+            { x: 1100, y: 380 }, { x: 1150, y: 380 },
+            { x: 1100, y: 440 }, { x: 1150, y: 440 }
         ]
     },
     
-    // Calvin's office - bottom center, large
+    // Calvin's office - bottom center (same size as Alex's and break room)
     calvinsOffice: {
-        x: 450, y: 570, w: 500, h: 250,
-        desk: { x: 700, y: 700 },
+        x: 550, y: 560, w: 300, h: 180,
+        desk: { x: 700, y: 660 },
         queue: [
-            { x: 500, y: 640 }, { x: 560, y: 640 }, { x: 620, y: 640 },
-            { x: 500, y: 720 }, { x: 560, y: 720 }, { x: 620, y: 720 }
+            { x: 590, y: 610 }, { x: 650, y: 610 }, { x: 710, y: 610 },
+            { x: 590, y: 680 }, { x: 650, y: 680 }, { x: 710, y: 680 }
         ],
-        inside: { x: 780, y: 700 }
+        inside: { x: 760, y: 660 }
     }
 };
 
@@ -103,7 +102,7 @@ let waitingQueue = [];
 function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '2.3'; // Connected to Supabase - responses now flow through
+    const CURRENT_VERSION = '2.4'; // Layout fix - room labels above rooms, resized offices
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
@@ -516,11 +515,11 @@ function drawConferenceRoom() {
     ctx.lineWidth = 2;
     ctx.strokeRect(c.x + 80, c.y + 60, 240, 80);
     
-    // Label
+    // Label - ABOVE the room so agent bubbles don't cover it
     ctx.fillStyle = '#3b82f6';
     ctx.font = '12px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillText('CONFERENCE ROOM', c.x + c.w/2, c.y + 25);
+    ctx.fillText('CONFERENCE ROOM', c.x + c.w/2, c.y - 10);
 }
 
 function drawBreakRoom() {
@@ -547,11 +546,11 @@ function drawBreakRoom() {
     ctx.fillStyle = '#ff6b35';
     ctx.fillRect(b.x + 285, b.y + 50, 10, 10);
     
-    // Label
+    // Label - ABOVE the room so agent bubbles don't cover it
     ctx.fillStyle = '#6b7280';
     ctx.font = '12px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillText('BREAK ROOM', b.x + b.w/2, b.y + 25);
+    ctx.fillText('BREAK ROOM', b.x + b.w/2, b.y - 10);
 }
 
 function drawAlexOffice() {
@@ -585,15 +584,11 @@ function drawAlexOffice() {
         ctx.fill();
     });
     
-    // Label
+    // Label - ABOVE the room so agent bubbles don't cover it
     ctx.fillStyle = '#8b5cf6';
     ctx.font = '12px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillText("ALEX'S OFFICE", o.x + o.w/2, o.y + 25);
-    
-    ctx.fillStyle = '#666';
-    ctx.font = '8px "Press Start 2P"';
-    ctx.fillText('CEO', o.x + o.w/2, o.y + 42);
+    ctx.fillText("ALEX'S OFFICE", o.x + o.w/2, o.y - 10);
 }
 
 function drawCalvinsOffice() {
@@ -634,15 +629,15 @@ function drawCalvinsOffice() {
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // Labels
+    // Labels - ABOVE the room so agent bubbles don't cover it
     ctx.fillStyle = '#f85149';
     ctx.font = '12px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillText("CALVIN'S OFFICE", o.x + o.w/2, o.y + 25);
+    ctx.fillText("CALVIN'S OFFICE", o.x + o.w/2, o.y - 10);
     
     ctx.fillStyle = '#888';
     ctx.font = '8px "Press Start 2P"';
-    ctx.fillText('WAITING LINE', o.x + 115, o.y + 80);
+    ctx.fillText('WAITING LINE', o.x + o.w/2, o.y + 40);
 }
 
 function drawAgent(agent) {
