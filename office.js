@@ -118,11 +118,35 @@ function getDefaultStates() {
         devin: { state: 'working', task: 'Building Command Center', waitingItem: null },
         denise: { state: 'meeting', task: 'Design review', waitingItem: null },
         molly: { state: 'idle', task: '', waitingItem: null },
-        finn: { state: 'waiting', task: 'Needs QuickBooks access', waitingItem: { title: 'QuickBooks Access', desc: 'Need credentials to set up financial tracking' } },
+        finn: { state: 'waiting', task: 'Needs QuickBooks access', waitingItem: {
+            title: 'QuickBooks Access Required',
+            desc: 'Need credentials to set up financial tracking',
+            context: 'I need to connect to QuickBooks to start tracking revenue, expenses, and cash flow across all companies. This will enable automated financial reporting and alerts.',
+            whatINeed: [
+                'QuickBooks Online login credentials (email + password)',
+                'Or: Admin invite sent to finn@alex.calvinbagley.com',
+                'Confirmation of which entities to track (Nuvo Health, PlanFit, Medicare Store, etc.)'
+            ],
+            whyItMatters: 'Without QuickBooks access, I cannot provide accurate financial dashboards, track monthly revenue trends, or alert you to cash flow issues. Currently flying blind on finances.',
+            deadline: 'No hard deadline, but sooner = sooner I can start providing value',
+            alternatives: 'If QuickBooks isn\'t preferred, I can also work with Xero, FreshBooks, or direct bank feeds.'
+        }},
         mark: { state: 'working', task: 'Marketing plan', waitingItem: null },
         randy: { state: 'meeting', task: 'Research review', waitingItem: null },
         annie: { state: 'idle', task: '', waitingItem: null },
-        ivan: { state: 'waiting', task: 'Trading credentials', waitingItem: { title: 'Trading Credentials', desc: 'Need Coinbase access for UNI position' } },
+        ivan: { state: 'waiting', task: 'Trading credentials', waitingItem: {
+            title: 'Coinbase Access for UNI Position',
+            desc: 'Need trading credentials to execute the UNI play',
+            context: 'You mentioned interest in a UNI (Uniswap) position. I\'ve been monitoring the market and have some entry points identified, but I need exchange access to execute.',
+            whatINeed: [
+                'Coinbase Pro API key (read + trade permissions)',
+                'Or: Login credentials for manual execution guidance',
+                'Confirmation of position size / risk tolerance'
+            ],
+            whyItMatters: 'UNI is currently at a potential entry point based on my analysis. Without access, I can only advise but not act. If you want me to manage trades, I need credentials.',
+            deadline: 'Market-dependent - entry points don\'t last forever',
+            alternatives: 'I can also work with Kraken, Gemini, or other exchanges if you prefer. Or I can just provide alerts and you execute manually.'
+        }},
         tara: { state: 'idle', task: '', waitingItem: null },
         leo: { state: 'withAlex', task: 'Policy review', waitingItem: null },
         clara: { state: 'working', task: 'Support tickets', waitingItem: null },

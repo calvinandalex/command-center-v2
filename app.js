@@ -11,6 +11,7 @@ const projects = [
 
 let feedItems = [];
 let lastKnownStates = {};
+let currentModalAgent = null;
 
 // Tab switching
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,6 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
+    // Close modal on backdrop click
+    document.getElementById('detail-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'detail-modal') closeModal();
+    });
+    
+    // Close modal on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+    
     // Initial render
     setTimeout(() => {
         renderWaitingItems();
@@ -32,11 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderFeed();
         populateFilter();
         
-        // Track initial states for change detection
         if (window.getAgentStates) {
             lastKnownStates = JSON.parse(JSON.stringify(window.getAgentStates()));
         }
-    }, 100); // Small delay to let office.js initialize
+    }, 100);
     
     // Listen for state updates from Virtual Office
     window.addEventListener('agentStatesUpdated', (e) => {
@@ -44,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderWaitingItems();
     });
     
-    // Poll for changes every 2 seconds (backup sync)
+    // Poll for changes every 2 seconds
     setInterval(() => {
         renderWaitingItems();
     }, 2000);
@@ -58,7 +68,6 @@ function detectAndLogChanges(newStates) {
         if (!oldState || oldState.state !== newState.state || oldState.task !== newState.task) {
             const agent = window.agents.find(a => a.id === agentId);
             if (agent && newState.task) {
-                // Add to feed
                 const action = getActionText(newState.state, newState.task);
                 addToFeed(agent.name.toLowerCase(), action, agent.color);
             }
@@ -89,9 +98,8 @@ function addToFeed(agentName, action, color) {
     if (feedItems.length > 20) feedItems.pop();
     renderFeed();
     
-    // Age timestamps
     setTimeout(() => {
-        feedItems.forEach((item, i) => {
+        feedItems.forEach((item) => {
             if (item.time === 'now') item.time = '1m ago';
         });
         renderFeed();
@@ -102,7 +110,6 @@ function renderWaitingItems() {
     const container = document.getElementById('waiting-items');
     if (!container) return;
     
-    // Get waiting items from Virtual Office state
     const waitingItems = window.getWaitingItems ? window.getWaitingItems() : [];
     
     if (waitingItems.length === 0) {
@@ -111,15 +118,111 @@ function renderWaitingItems() {
     }
     
     container.innerHTML = waitingItems.map(item => `
-        <div class="waiting-item">
-            <div>
+        <div class="waiting-item" onclick="showItemDetail('${item.agentId}')">
+            <div class="waiting-item-content">
                 <h4>${item.title}</h4>
                 <p><strong>${item.agent}:</strong> ${item.desc}</p>
-                ${item.task ? `<p style="color:#888;font-size:10px;">Task: ${item.task}</p>` : ''}
+                <p class="click-hint">Click for full details →</p>
             </div>
-            <button class="btn btn-approve" onclick="approveItem('${item.agentId}')">Approve</button>
         </div>
     `).join('');
+}
+
+function showItemDetail(agentId) {
+    const states = window.getAgentStates ? window.getAgentStates() : {};
+    const state = states[agentId];
+    if (!state || !state.waitingItem) return;
+    
+    const agent = window.agents.find(a => a.id === agentId);
+    if (!agent) return;
+    
+    const item = state.waitingItem;
+    currentModalAgent = agentId;
+    
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-avatar" style="background:${agent.color}">${agent.name.substring(0,2).toUpperCase()}</div>
+            <div>
+                <div class="modal-title">${item.title}</div>
+                <div class="modal-subtitle">${agent.name} — ${agent.role}</div>
+            </div>
+        </div>
+        
+        <div class="modal-section">
+            <h4>📋 Context</h4>
+            <p>${item.context || item.desc}</p>
+        </div>
+        
+        ${item.whatINeed ? `
+        <div class="modal-section">
+            <h4>✅ What I Need From You</h4>
+            <ul>
+                ${item.whatINeed.map(need => `<li>${need}</li>`).join('')}
+            </ul>
+        </div>
+        ` : ''}
+        
+        ${item.whyItMatters ? `
+        <div class="modal-section">
+            <h4>⚡ Why It Matters</h4>
+            <p>${item.whyItMatters}</p>
+        </div>
+        ` : ''}
+        
+        ${item.deadline ? `
+        <div class="modal-section">
+            <h4>⏰ Timeline</h4>
+            <p>${item.deadline}</p>
+        </div>
+        ` : ''}
+        
+        ${item.alternatives ? `
+        <div class="modal-section">
+            <h4>🔄 Alternatives</h4>
+            <p>${item.alternatives}</p>
+        </div>
+        ` : ''}
+        
+        <div class="modal-actions">
+            <button class="btn-large btn-approve-large" onclick="approveFromModal()">✓ Approve / Provide</button>
+            <button class="btn-large btn-later" onclick="closeModal()">Later</button>
+            <button class="btn-large btn-deny" onclick="denyFromModal()">✗ Deny</button>
+        </div>
+    `;
+    
+    document.getElementById('detail-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('detail-modal').classList.add('hidden');
+    currentModalAgent = null;
+}
+
+function approveFromModal() {
+    if (currentModalAgent && window.moveAgentTo) {
+        const agent = window.agents.find(a => a.id === currentModalAgent);
+        window.moveAgentTo(currentModalAgent, 'working', 'Approved - proceeding');
+        
+        if (agent) {
+            addToFeed(agent.name.toLowerCase(), 'approved by Calvin ✓', '#22c55e');
+        }
+    }
+    closeModal();
+    renderWaitingItems();
+}
+
+function denyFromModal() {
+    if (currentModalAgent && window.moveAgentTo) {
+        const agent = window.agents.find(a => a.id === currentModalAgent);
+        window.moveAgentTo(currentModalAgent, 'working', 'Request denied - finding alternative');
+        
+        if (agent) {
+            addToFeed(agent.name.toLowerCase(), 'request denied by Calvin', '#f85149');
+        }
+    }
+    closeModal();
+    renderWaitingItems();
 }
 
 function renderProjects() {
@@ -193,22 +296,12 @@ function renderFilteredFeed(agentFilter) {
     `).join('');
 }
 
+// Legacy function for inline approve buttons (if any remain)
 function approveItem(agentId) {
-    // Move agent from waiting to working
-    if (window.moveAgentTo) {
-        const agent = window.agents.find(a => a.id === agentId);
-        window.moveAgentTo(agentId, 'working', 'Approved - proceeding');
-        
-        // Add to feed
-        if (agent) {
-            addToFeed(agent.name.toLowerCase(), 'approved by Calvin ✓', '#22c55e');
-        }
-    }
-    
-    renderWaitingItems();
+    showItemDetail(agentId);
 }
 
-// Initialize some feed items on load
+// Initialize feed with some starting items
 setTimeout(() => {
     if (window.agents) {
         addToFeed('alex', 'coordinating team operations', '#8b5cf6');
