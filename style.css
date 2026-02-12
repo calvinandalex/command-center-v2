@@ -43,15 +43,24 @@ body {
     border-bottom-color: #00ff41;
 }
 
-/* Tab Content */
+/* Tab Content - use !important to override ID-specific display rules */
 .tab-content {
-    display: none;
+    display: none !important;
     height: calc(100vh - 55px);
     overflow: auto;
 }
 
-.tab-content.active {
-    display: block;
+/* Each tab has its own display type when active */
+#command-center.active {
+    display: block !important;
+}
+
+#virtual-office.active {
+    display: flex !important;
+}
+
+#team.active {
+    display: block !important;
 }
 
 /* Command Center Dashboard */
