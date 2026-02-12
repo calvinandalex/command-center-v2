@@ -2,7 +2,7 @@
 // Real-time agent visualization
 
 const CANVAS_WIDTH = 1400;
-const CANVAS_HEIGHT = 800;
+const CANVAS_HEIGHT = 850;
 
 // Agent definitions
 const agents = [
@@ -24,28 +24,27 @@ const agents = [
     { id: 'henry', name: 'Henry', role: 'Health', color: '#84cc16' }
 ].map(a => ({ ...a, x: 100, y: 400, targetX: 100, targetY: 400, state: 'idle', task: '' }));
 
-// Bigger, better laid out zones
+// Layout with Alex's Office added
 const layout = {
     // Individual desks - 2 rows of 8 at the top
     desks: [
         // Top row
-        { x: 80, y: 80, agent: 'alex' },
-        { x: 180, y: 80, agent: 'penny' },
-        { x: 280, y: 80, agent: 'owen' },
-        { x: 380, y: 80, agent: 'devin' },
-        { x: 900, y: 80, agent: 'denise' },
-        { x: 1000, y: 80, agent: 'molly' },
-        { x: 1100, y: 80, agent: 'finn' },
-        { x: 1200, y: 80, agent: 'mark' },
+        { x: 80, y: 80, agent: 'penny' },
+        { x: 180, y: 80, agent: 'owen' },
+        { x: 280, y: 80, agent: 'devin' },
+        { x: 380, y: 80, agent: 'denise' },
+        { x: 900, y: 80, agent: 'molly' },
+        { x: 1000, y: 80, agent: 'finn' },
+        { x: 1100, y: 80, agent: 'mark' },
+        { x: 1200, y: 80, agent: 'randy' },
         // Second row
-        { x: 80, y: 180, agent: 'randy' },
-        { x: 180, y: 180, agent: 'annie' },
-        { x: 280, y: 180, agent: 'ivan' },
-        { x: 380, y: 180, agent: 'tara' },
-        { x: 900, y: 180, agent: 'leo' },
-        { x: 1000, y: 180, agent: 'clara' },
-        { x: 1100, y: 180, agent: 'simon' },
-        { x: 1200, y: 180, agent: 'henry' }
+        { x: 80, y: 180, agent: 'annie' },
+        { x: 180, y: 180, agent: 'ivan' },
+        { x: 280, y: 180, agent: 'tara' },
+        { x: 380, y: 180, agent: 'leo' },
+        { x: 900, y: 180, agent: 'clara' },
+        { x: 1000, y: 180, agent: 'simon' },
+        { x: 1100, y: 180, agent: 'henry' }
     ],
     
     // Conference room - large central area
@@ -67,15 +66,25 @@ const layout = {
         ]
     },
     
+    // Alex's Office (CEO) - right side
+    alexOffice: {
+        x: 1000, y: 320, w: 350, h: 200,
+        desk: { x: 1175, y: 420 },
+        meetingSpots: [
+            { x: 1050, y: 380 }, { x: 1100, y: 380 }, { x: 1150, y: 380 },
+            { x: 1050, y: 440 }, { x: 1100, y: 440 }
+        ]
+    },
+    
     // Calvin's office - bottom center, large
     calvinsOffice: {
-        x: 450, y: 550, w: 500, h: 220,
-        desk: { x: 700, y: 660 },
+        x: 450, y: 570, w: 500, h: 250,
+        desk: { x: 700, y: 700 },
         queue: [
-            { x: 500, y: 620 }, { x: 560, y: 620 }, { x: 620, y: 620 },
-            { x: 500, y: 700 }, { x: 560, y: 700 }, { x: 620, y: 700 }
+            { x: 500, y: 640 }, { x: 560, y: 640 }, { x: 620, y: 640 },
+            { x: 500, y: 720 }, { x: 560, y: 720 }, { x: 620, y: 720 }
         ],
-        inside: { x: 780, y: 660 }
+        inside: { x: 780, y: 700 }
     }
 };
 
@@ -84,25 +93,49 @@ let animationFrame = 0;
 let selectedAgent = null;
 let lastStateUpdate = 0;
 
-// Simulated real-time states (in production, poll from backend)
-let agentStates = {
-    alex: { state: 'working', task: 'Coordinating team' },
-    penny: { state: 'waiting', task: 'Calendar approval needed' },
-    owen: { state: 'working', task: 'Processing applications' },
-    devin: { state: 'working', task: 'Building Command Center' },
-    denise: { state: 'meeting', task: 'Design review' },
-    molly: { state: 'idle', task: '' },
-    finn: { state: 'waiting', task: 'Needs QuickBooks access' },
-    mark: { state: 'working', task: 'Marketing plan' },
-    randy: { state: 'meeting', task: 'Research review' },
-    annie: { state: 'idle', task: '' },
-    ivan: { state: 'waiting', task: 'Trading credentials' },
-    tara: { state: 'idle', task: '' },
-    leo: { state: 'meeting', task: 'Policy review' },
-    clara: { state: 'working', task: 'Support tickets' },
-    simon: { state: 'meeting', task: 'Security review' },
-    henry: { state: 'idle', task: '' }
-};
+// Central agent state - this is what gets synced with Command Center
+let agentStates = {};
+
+// Load initial states from localStorage or use defaults
+function loadAgentStates() {
+    const saved = localStorage.getItem('agentStates');
+    if (saved) {
+        try {
+            agentStates = JSON.parse(saved);
+        } catch(e) {
+            agentStates = getDefaultStates();
+        }
+    } else {
+        agentStates = getDefaultStates();
+    }
+}
+
+function getDefaultStates() {
+    return {
+        alex: { state: 'alexOffice', task: 'Coordinating team', waitingItem: null },
+        penny: { state: 'working', task: 'Managing calendars', waitingItem: null },
+        owen: { state: 'working', task: 'Processing applications', waitingItem: null },
+        devin: { state: 'working', task: 'Building Command Center', waitingItem: null },
+        denise: { state: 'meeting', task: 'Design review', waitingItem: null },
+        molly: { state: 'idle', task: '', waitingItem: null },
+        finn: { state: 'waiting', task: 'Needs QuickBooks access', waitingItem: { title: 'QuickBooks Access', desc: 'Need credentials to set up financial tracking' } },
+        mark: { state: 'working', task: 'Marketing plan', waitingItem: null },
+        randy: { state: 'meeting', task: 'Research review', waitingItem: null },
+        annie: { state: 'idle', task: '', waitingItem: null },
+        ivan: { state: 'waiting', task: 'Trading credentials', waitingItem: { title: 'Trading Credentials', desc: 'Need Coinbase access for UNI position' } },
+        tara: { state: 'idle', task: '', waitingItem: null },
+        leo: { state: 'withAlex', task: 'Policy review', waitingItem: null },
+        clara: { state: 'working', task: 'Support tickets', waitingItem: null },
+        simon: { state: 'withAlex', task: 'Security review', waitingItem: null },
+        henry: { state: 'idle', task: '', waitingItem: null }
+    };
+}
+
+function saveAgentStates() {
+    localStorage.setItem('agentStates', JSON.stringify(agentStates));
+    // Dispatch event for Command Center to pick up
+    window.dispatchEvent(new CustomEvent('agentStatesUpdated', { detail: agentStates }));
+}
 
 function initOffice() {
     canvas = document.getElementById('office-canvas');
@@ -111,6 +144,9 @@ function initOffice() {
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
     ctx = canvas.getContext('2d');
+    
+    // Load states
+    loadAgentStates();
     
     // Initial positioning
     updateAgentPositions();
@@ -121,18 +157,19 @@ function initOffice() {
     // Click handler
     canvas.addEventListener('click', handleClick);
     
-    // Simulate state changes every few seconds
-    setInterval(simulateStateChanges, 5000);
+    // Simulate state changes every 8 seconds (in production, this would be real data)
+    setInterval(simulateStateChanges, 8000);
 }
 
 function updateAgentPositions() {
     // Count agents in each zone
-    let confIdx = 0, breakIdx = 0, waitIdx = 0;
+    let confIdx = 0, breakIdx = 0, waitIdx = 0, alexMeetIdx = 0;
     
     agents.forEach(agent => {
-        const state = agentStates[agent.id];
+        const state = agentStates[agent.id] || { state: 'idle', task: '' };
         agent.state = state.state;
         agent.task = state.task;
+        agent.waitingItem = state.waitingItem;
         
         let target;
         
@@ -140,7 +177,7 @@ function updateAgentPositions() {
             case 'working':
                 // Go to their assigned desk
                 const desk = layout.desks.find(d => d.agent === agent.id);
-                target = desk || layout.desks[0];
+                target = desk || layout.breakRoom.seats[0];
                 break;
                 
             case 'meeting':
@@ -158,8 +195,19 @@ function updateAgentPositions() {
                 waitIdx++;
                 break;
                 
-            case 'talking':
+            case 'withCalvin':
                 target = layout.calvinsOffice.inside;
+                break;
+                
+            case 'alexOffice':
+                // Alex at his desk
+                target = layout.alexOffice.desk;
+                break;
+                
+            case 'withAlex':
+                // Meeting with Alex
+                target = layout.alexOffice.meetingSpots[alexMeetIdx % layout.alexOffice.meetingSpots.length];
+                alexMeetIdx++;
                 break;
                 
             default:
@@ -172,27 +220,43 @@ function updateAgentPositions() {
 }
 
 function simulateStateChanges() {
-    // Randomly change some agent states to simulate real activity
-    const states = ['working', 'meeting', 'idle', 'waiting'];
+    // In production, this would poll from a real data source
+    // For now, occasional random changes to show the system works
+    const states = ['working', 'meeting', 'idle', 'waiting', 'withAlex'];
     const tasks = {
-        working: ['Processing tasks', 'Analyzing data', 'Writing report', 'Reviewing docs'],
+        working: ['Processing tasks', 'Analyzing data', 'Writing report', 'Reviewing docs', 'Building features'],
         meeting: ['Team sync', 'Project review', 'Planning session', 'Collaboration'],
         idle: ['', 'Coffee break', 'Stretching', ''],
-        waiting: ['Needs approval', 'Question for Calvin', 'Blocked on decision', 'Awaiting input']
+        waiting: ['Needs approval', 'Question for Calvin', 'Blocked on decision', 'Awaiting input'],
+        withAlex: ['1:1 meeting', 'Project discussion', 'Status update']
     };
     
-    // Change 1-3 random agents
-    const numChanges = Math.floor(Math.random() * 3) + 1;
+    // Change 1-2 random agents (but not Alex)
+    const numChanges = Math.floor(Math.random() * 2) + 1;
+    const nonAlexAgents = agents.filter(a => a.id !== 'alex');
     
     for (let i = 0; i < numChanges; i++) {
-        const agent = agents[Math.floor(Math.random() * agents.length)];
+        const agent = nonAlexAgents[Math.floor(Math.random() * nonAlexAgents.length)];
         const newState = states[Math.floor(Math.random() * states.length)];
         const taskList = tasks[newState];
         const newTask = taskList[Math.floor(Math.random() * taskList.length)];
         
-        agentStates[agent.id] = { state: newState, task: newTask };
+        // Generate waiting item if waiting
+        let waitingItem = null;
+        if (newState === 'waiting') {
+            const waitingReasons = [
+                { title: 'Approval Needed', desc: 'Requires sign-off to proceed' },
+                { title: 'Question', desc: 'Need clarification on project scope' },
+                { title: 'Access Request', desc: 'Need credentials or permissions' },
+                { title: 'Decision Required', desc: 'Multiple options, need direction' }
+            ];
+            waitingItem = waitingReasons[Math.floor(Math.random() * waitingReasons.length)];
+        }
+        
+        agentStates[agent.id] = { state: newState, task: newTask, waitingItem };
     }
     
+    saveAgentStates();
     updateAgentPositions();
 }
 
@@ -211,7 +275,6 @@ function update() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist > 3) {
-            // Move toward target
             const speed = 2.5;
             agent.x += (dx / dist) * speed;
             agent.y += (dy / dist) * speed;
@@ -243,6 +306,7 @@ function render() {
     drawDesks();
     drawConferenceRoom();
     drawBreakRoom();
+    drawAlexOffice();
     drawCalvinsOffice();
     
     // Draw agents (sorted by Y for depth)
@@ -330,6 +394,48 @@ function drawBreakRoom() {
     ctx.fillText('BREAK ROOM', b.x + b.w/2, b.y + 25);
 }
 
+function drawAlexOffice() {
+    const o = layout.alexOffice;
+    
+    // Room
+    ctx.fillStyle = '#15101a';
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.strokeStyle = '#8b5cf6';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(o.x, o.y, o.w, o.h);
+    
+    // Alex's desk
+    ctx.fillStyle = '#2a2a4e';
+    ctx.fillRect(o.desk.x - 50, o.desk.y - 25, 100, 50);
+    ctx.strokeStyle = '#3a3a5e';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(o.desk.x - 50, o.desk.y - 25, 100, 50);
+    
+    // Monitor on desk
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(o.desk.x - 15, o.desk.y - 20, 30, 22);
+    ctx.fillStyle = '#8b5cf6';
+    ctx.fillRect(o.desk.x - 13, o.desk.y - 18, 26, 18);
+    
+    // Meeting chairs
+    o.meetingSpots.forEach(spot => {
+        ctx.fillStyle = '#3a3a5e';
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    // Label
+    ctx.fillStyle = '#8b5cf6';
+    ctx.font = '12px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText("ALEX'S OFFICE", o.x + o.w/2, o.y + 25);
+    
+    ctx.fillStyle = '#666';
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillText('CEO', o.x + o.w/2, o.y + 42);
+}
+
 function drawCalvinsOffice() {
     const o = layout.calvinsOffice;
     
@@ -393,14 +499,13 @@ function drawAgent(agent) {
     ctx.ellipse(x, y + 22, 14, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     
-    // Legs (if walking)
+    // Legs
+    ctx.fillStyle = '#333';
     if (agent.moving) {
-        ctx.fillStyle = '#333';
         const legOffset = walkCycle < 2 ? 3 : -3;
         ctx.fillRect(x - 5 + legOffset, y + 8, 4, 12);
         ctx.fillRect(x + 1 - legOffset, y + 8, 4, 12);
     } else {
-        ctx.fillStyle = '#333';
         ctx.fillRect(x - 5, y + 8, 4, 12);
         ctx.fillRect(x + 1, y + 8, 4, 12);
     }
@@ -438,7 +543,9 @@ function drawAgent(agent) {
         case 'working': stateColor = '#00ff41'; break;
         case 'meeting': stateColor = '#3b82f6'; break;
         case 'waiting': stateColor = '#f85149'; break;
-        case 'talking': stateColor = '#ffd700'; break;
+        case 'withCalvin': stateColor = '#ffd700'; break;
+        case 'alexOffice': stateColor = '#8b5cf6'; break;
+        case 'withAlex': stateColor = '#a78bfa'; break;
         default: stateColor = '#6b7280';
     }
     
@@ -450,8 +557,8 @@ function drawAgent(agent) {
     ctx.lineWidth = 1;
     ctx.stroke();
     
-    // Task bubble if working/waiting
-    if (agent.task && (agent.state === 'working' || agent.state === 'waiting')) {
+    // Task bubble
+    if (agent.task && ['working', 'waiting', 'withAlex', 'alexOffice'].includes(agent.state)) {
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
         const textWidth = ctx.measureText(agent.task).width;
         ctx.fillRect(x - textWidth/2 - 5, y - 50 + bobOffset, textWidth + 10, 16);
@@ -495,13 +602,15 @@ function updateInfoPanel() {
             working: '💻 Working at desk',
             meeting: '🤝 In conference room',
             waiting: '⏳ Waiting on Calvin',
-            talking: '💬 With Calvin',
-            idle: '☕ On break'
+            withCalvin: '💬 With Calvin',
+            idle: '☕ On break',
+            alexOffice: '🏢 In CEO office',
+            withAlex: '💼 Meeting with Alex'
         };
         panel.innerHTML = `
             <span style="color:${selectedAgent.color};font-size:12px;">${selectedAgent.name}</span>
             <span style="color:#888;font-size:10px;"> — ${selectedAgent.role}</span><br>
-            <span style="font-size:10px;">${states[selectedAgent.state]}</span>
+            <span style="font-size:10px;">${states[selectedAgent.state] || selectedAgent.state}</span>
             ${selectedAgent.task ? `<br><span style="color:#aaa;font-size:8px;">${selectedAgent.task}</span>` : ''}
         `;
     } else {
@@ -510,9 +619,32 @@ function updateInfoPanel() {
 }
 
 // Public API
-window.moveAgentTo = function(agentId, newState, task = '') {
-    agentStates[agentId] = { state: newState, task };
+window.moveAgentTo = function(agentId, newState, task = '', waitingItem = null) {
+    agentStates[agentId] = { state: newState, task, waitingItem };
+    saveAgentStates();
     updateAgentPositions();
+};
+
+window.getAgentStates = function() {
+    return agentStates;
+};
+
+window.getWaitingItems = function() {
+    const items = [];
+    for (const [agentId, state] of Object.entries(agentStates)) {
+        if (state.state === 'waiting' && state.waitingItem) {
+            const agent = agents.find(a => a.id === agentId);
+            items.push({
+                id: agentId,
+                agent: agent ? agent.name : agentId,
+                agentId: agentId,
+                title: state.waitingItem.title,
+                desc: state.waitingItem.desc,
+                task: state.task
+            });
+        }
+    }
+    return items;
 };
 
 window.agents = agents;

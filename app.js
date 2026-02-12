@@ -1,27 +1,16 @@
 // Command Center v2 - Dashboard Logic
-
-// Mock data
-const waitingItems = [
-    { id: 1, agent: 'penny', title: 'Podcast scheduling', desc: 'PodMatch booking needs approval' },
-    { id: 2, agent: 'finn', title: 'QuickBooks access', desc: 'Required for financial tracking' },
-    { id: 3, agent: 'ivan', title: 'Trading credentials', desc: 'Coinbase access for UNI play' }
-];
+// Syncs with Virtual Office agent states
 
 const projects = [
     { name: 'VitalStack', status: 'Design', progress: 15 },
     { name: 'Gentle Pace Fitness', status: 'Development', progress: 75 },
     { name: 'Medicare Broker Directory', status: 'Live', progress: 60 },
-    { name: 'Command Center v2', status: 'Building', progress: 50 },
+    { name: 'Command Center v2', status: 'Building', progress: 70 },
     { name: 'Multi-Agent System', status: 'Complete', progress: 100 }
 ];
 
-let feedItems = [
-    { agent: 'leo', action: 'completed Agent Messaging Policy', time: '2m ago', color: '#6366f1' },
-    { agent: 'denise', action: 'designed Virtual Office specs', time: '8m ago', color: '#06b6d4' },
-    { agent: 'simon', action: 'finished security review', time: '12m ago', color: '#64748b' },
-    { agent: 'devin', action: 'started Command Center build', time: '15m ago', color: '#10b981' },
-    { agent: 'alex', action: 'deployed messaging policy', time: '20m ago', color: '#8b5cf6' }
-];
+let feedItems = [];
+let lastKnownStates = {};
 
 // Tab switching
 document.addEventListener('DOMContentLoaded', () => {
@@ -36,19 +25,88 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Render dashboard
-    renderWaitingItems();
-    renderProjects();
-    renderFeed();
-    populateFilter();
+    // Initial render
+    setTimeout(() => {
+        renderWaitingItems();
+        renderProjects();
+        renderFeed();
+        populateFilter();
+        
+        // Track initial states for change detection
+        if (window.getAgentStates) {
+            lastKnownStates = JSON.parse(JSON.stringify(window.getAgentStates()));
+        }
+    }, 100); // Small delay to let office.js initialize
+    
+    // Listen for state updates from Virtual Office
+    window.addEventListener('agentStatesUpdated', (e) => {
+        detectAndLogChanges(e.detail);
+        renderWaitingItems();
+    });
+    
+    // Poll for changes every 2 seconds (backup sync)
+    setInterval(() => {
+        renderWaitingItems();
+    }, 2000);
 });
+
+function detectAndLogChanges(newStates) {
+    if (!window.agents) return;
+    
+    for (const [agentId, newState] of Object.entries(newStates)) {
+        const oldState = lastKnownStates[agentId];
+        if (!oldState || oldState.state !== newState.state || oldState.task !== newState.task) {
+            const agent = window.agents.find(a => a.id === agentId);
+            if (agent && newState.task) {
+                // Add to feed
+                const action = getActionText(newState.state, newState.task);
+                addToFeed(agent.name.toLowerCase(), action, agent.color);
+            }
+        }
+    }
+    lastKnownStates = JSON.parse(JSON.stringify(newStates));
+}
+
+function getActionText(state, task) {
+    switch(state) {
+        case 'working': return `working on: ${task}`;
+        case 'meeting': return `joined meeting: ${task}`;
+        case 'waiting': return `needs Calvin: ${task}`;
+        case 'withAlex': return `meeting with Alex: ${task}`;
+        case 'idle': return 'taking a break';
+        default: return task;
+    }
+}
+
+function addToFeed(agentName, action, color) {
+    feedItems.unshift({
+        agent: agentName,
+        action: action,
+        time: 'now',
+        color: color
+    });
+    
+    if (feedItems.length > 20) feedItems.pop();
+    renderFeed();
+    
+    // Age timestamps
+    setTimeout(() => {
+        feedItems.forEach((item, i) => {
+            if (item.time === 'now') item.time = '1m ago';
+        });
+        renderFeed();
+    }, 60000);
+}
 
 function renderWaitingItems() {
     const container = document.getElementById('waiting-items');
     if (!container) return;
     
+    // Get waiting items from Virtual Office state
+    const waitingItems = window.getWaitingItems ? window.getWaitingItems() : [];
+    
     if (waitingItems.length === 0) {
-        container.innerHTML = '<p style="color:#3fb950;padding:10px;">✓ All clear!</p>';
+        container.innerHTML = '<p style="color:#3fb950;padding:10px;">✓ All clear - no one waiting!</p>';
         return;
     }
     
@@ -56,9 +114,10 @@ function renderWaitingItems() {
         <div class="waiting-item">
             <div>
                 <h4>${item.title}</h4>
-                <p>${item.agent}: ${item.desc}</p>
+                <p><strong>${item.agent}:</strong> ${item.desc}</p>
+                ${item.task ? `<p style="color:#888;font-size:10px;">Task: ${item.task}</p>` : ''}
             </div>
-            <button class="btn btn-approve" onclick="approveItem(${item.id})">Approve</button>
+            <button class="btn btn-approve" onclick="approveItem('${item.agentId}')">Approve</button>
         </div>
     `).join('');
 }
@@ -81,6 +140,11 @@ function renderFeed() {
     const container = document.getElementById('feed-items');
     if (!container) return;
     
+    if (feedItems.length === 0) {
+        container.innerHTML = '<p style="color:#666;padding:10px;">Activity will appear here...</p>';
+        return;
+    }
+    
     container.innerHTML = feedItems.map(item => `
         <div class="feed-item">
             <div class="feed-avatar" style="background:${item.color}">${item.agent.substring(0,2).toUpperCase()}</div>
@@ -100,46 +164,55 @@ function populateFilter() {
         opt.textContent = agent.name;
         select.appendChild(opt);
     });
+    
+    select.addEventListener('change', () => {
+        const val = select.value;
+        renderFilteredFeed(val);
+    });
 }
 
-function approveItem(id) {
-    const idx = waitingItems.findIndex(i => i.id === id);
-    if (idx > -1) {
-        const item = waitingItems[idx];
+function renderFilteredFeed(agentFilter) {
+    const container = document.getElementById('feed-items');
+    if (!container) return;
+    
+    const filtered = agentFilter === 'all' 
+        ? feedItems 
+        : feedItems.filter(f => f.agent === agentFilter);
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<p style="color:#666;padding:10px;">No activity for this agent...</p>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(item => `
+        <div class="feed-item">
+            <div class="feed-avatar" style="background:${item.color}">${item.agent.substring(0,2).toUpperCase()}</div>
+            <span><strong>${item.agent}</strong> ${item.action}</span>
+            <span class="feed-time">${item.time}</span>
+        </div>
+    `).join('');
+}
+
+function approveItem(agentId) {
+    // Move agent from waiting to working
+    if (window.moveAgentTo) {
+        const agent = window.agents.find(a => a.id === agentId);
+        window.moveAgentTo(agentId, 'working', 'Approved - proceeding');
         
         // Add to feed
-        feedItems.unshift({
-            agent: item.agent,
-            action: `approved: ${item.title}`,
-            time: 'now',
-            color: '#22c55e'
-        });
-        
-        // Move agent from waiting to working
-        if (window.moveAgentTo) {
-            window.moveAgentTo(item.agent, 'working');
+        if (agent) {
+            addToFeed(agent.name.toLowerCase(), 'approved by Calvin ✓', '#22c55e');
         }
-        
-        // Remove from waiting
-        waitingItems.splice(idx, 1);
-        
-        renderWaitingItems();
-        renderFeed();
     }
+    
+    renderWaitingItems();
 }
 
-// Simulate activity
-setInterval(() => {
-    const actions = ['updated task', 'completed review', 'sent report', 'started analysis'];
-    const agent = window.agents ? window.agents[Math.floor(Math.random() * window.agents.length)] : { id: 'alex', name: 'Alex', color: '#8b5cf6' };
-    
-    feedItems.unshift({
-        agent: agent.name.toLowerCase(),
-        action: actions[Math.floor(Math.random() * actions.length)],
-        time: 'now',
-        color: agent.color
-    });
-    
-    if (feedItems.length > 15) feedItems.pop();
-    renderFeed();
-}, 15000);
+// Initialize some feed items on load
+setTimeout(() => {
+    if (window.agents) {
+        addToFeed('alex', 'coordinating team operations', '#8b5cf6');
+        addToFeed('devin', 'building Command Center v2', '#10b981');
+        addToFeed('leo', 'completed Agent Messaging Policy', '#6366f1');
+    }
+}, 500);
