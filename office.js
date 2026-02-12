@@ -50,9 +50,18 @@ const layout = {
     // Conference room - LARGEST room, central area
     conference: {
         x: 450, y: 280, w: 500, h: 220,
+        // Table centered at 700, 390 (center of room)
+        table: { x: 700, y: 390, w: 200, h: 80 },
+        // Seats AROUND the table, not on it
         seats: [
-            { x: 520, y: 360 }, { x: 600, y: 360 }, { x: 680, y: 360 }, { x: 760, y: 360 }, { x: 840, y: 360 },
-            { x: 520, y: 440 }, { x: 600, y: 440 }, { x: 680, y: 440 }, { x: 760, y: 440 }, { x: 840, y: 440 }
+            // Top row (above table)
+            { x: 620, y: 330 }, { x: 700, y: 330 }, { x: 780, y: 330 },
+            // Bottom row (below table)
+            { x: 620, y: 450 }, { x: 700, y: 450 }, { x: 780, y: 450 },
+            // Left side
+            { x: 570, y: 390 },
+            // Right side
+            { x: 830, y: 390 }
         ]
     },
     
@@ -68,22 +77,24 @@ const layout = {
     // Alex's Office (CEO) - right side (same size as break room and Calvin's)
     alexOffice: {
         x: 1050, y: 320, w: 300, h: 180,
-        desk: { x: 1200, y: 410 },
+        desk: { x: 1270, y: 410 },
+        // Meeting chairs on the LEFT side of office, away from desk
         meetingSpots: [
-            { x: 1100, y: 380 }, { x: 1150, y: 380 },
-            { x: 1100, y: 440 }, { x: 1150, y: 440 }
+            { x: 1100, y: 370 }, { x: 1150, y: 370 },
+            { x: 1100, y: 430 }, { x: 1150, y: 430 }
         ]
     },
     
     // Calvin's office - bottom center (same size as Alex's and break room)
     calvinsOffice: {
         x: 550, y: 560, w: 300, h: 180,
-        desk: { x: 700, y: 660 },
+        desk: { x: 770, y: 660 },
+        // Meeting chairs on the LEFT side of office, away from desk
         meetingSpots: [
-            { x: 600, y: 620 }, { x: 660, y: 620 },
+            { x: 600, y: 610 }, { x: 660, y: 610 },
             { x: 600, y: 680 }, { x: 660, y: 680 }
         ],
-        inside: { x: 760, y: 660 }
+        inside: { x: 820, y: 660 }
     }
 };
 
@@ -102,7 +113,7 @@ let waitingQueue = [];
 function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '2.5'; // Calvin pixel avatar with plaid blazer, meeting chairs, no waiting line
+    const CURRENT_VERSION = '2.6'; // Fixed chair positions - around tables not on them, desks moved
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
@@ -500,6 +511,7 @@ function drawDesks() {
 
 function drawConferenceRoom() {
     const c = layout.conference;
+    const t = c.table;
     
     // Room
     ctx.fillStyle = '#12122a';
@@ -508,12 +520,20 @@ function drawConferenceRoom() {
     ctx.lineWidth = 4;
     ctx.strokeRect(c.x, c.y, c.w, c.h);
     
-    // Table
+    // Table - centered
     ctx.fillStyle = '#2a2a4e';
-    ctx.fillRect(c.x + 80, c.y + 60, 240, 80);
+    ctx.fillRect(t.x - t.w/2, t.y - t.h/2, t.w, t.h);
     ctx.strokeStyle = '#3a3a5e';
     ctx.lineWidth = 2;
-    ctx.strokeRect(c.x + 80, c.y + 60, 240, 80);
+    ctx.strokeRect(t.x - t.w/2, t.y - t.h/2, t.w, t.h);
+    
+    // Chairs around the table
+    c.seats.forEach(seat => {
+        ctx.fillStyle = '#3a3a5e';
+        ctx.beginPath();
+        ctx.arc(seat.x, seat.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+    });
     
     // Label - ABOVE the room so agent bubbles don't cover it
     ctx.fillStyle = '#3b82f6';
