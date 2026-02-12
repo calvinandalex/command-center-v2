@@ -113,7 +113,7 @@ let waitingQueue = [];
 function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '2.9'; // Fixed queue->meetingSpots reference error
+    const CURRENT_VERSION = '3.0'; // Only show real queue items with context, no placeholders
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
@@ -167,24 +167,15 @@ function syncVisualStatesWithQueue() {
         }
     }
     
-    // 2. Visual → Queue: agents visually waiting should have queue items
+    // 2. Visual → Queue: agents visually waiting WITHOUT queue items should go back to working
+    // We do NOT auto-create placeholder items - Command Center should only show real requests with context
     for (const [agentId, state] of Object.entries(agentStates)) {
         if (state.state === 'waiting' && !agentsWithWaitingItems.has(agentId)) {
-            // Agent is in Calvin's office but has no queue item - CREATE ONE
-            const newItem = {
-                id: `${agentId}-auto-${Date.now()}`,
-                agentId: agentId,
-                createdAt: Date.now(),
-                title: state.task || 'Needs your attention',
-                desc: `${getAgentName(agentId)} is waiting in your office`,
-                context: state.task ? `Current task: ${state.task}` : 'Click to see details',
-                whatINeed: ['Your input or decision'],
-                whyItMatters: 'Agent is blocked waiting for you',
-                deadline: '',
-                alternatives: ''
-            };
-            waitingQueue.push(newItem);
-            console.log(`Auto-added ${agentId} to waiting queue`);
+            // Agent is visually waiting but has no queue item with real context
+            // Move them back to working - they shouldn't be in Calvin's office without a real request
+            agentStates[agentId].state = 'working';
+            agentStates[agentId].task = 'Working';
+            console.log(`${agentId} had no queue item - moved back to working`);
         }
     }
 }
