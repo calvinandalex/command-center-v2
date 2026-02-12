@@ -1,6 +1,34 @@
 // Command Center v2 - Dashboard Logic
 // Syncs with Virtual Office agent states
 
+// Supabase connection for real message passing
+const SUPABASE_URL = 'https://wfwglzrsuuqidscdqgao.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmd2dsenJzdXVxaWRzY2RxZ2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTI4MDcsImV4cCI6MjA4NTM4ODgwN30.Tpnv0rJBE1WCmdpt-yHzLIbnNrpriFeAJQeY2y33VlM';
+
+async function sendToSupabase(response) {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/calvin_responses`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(response)
+        });
+        
+        if (!res.ok) {
+            console.error('Supabase error:', res.status, await res.text());
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error('Failed to send to Supabase:', err);
+        return false;
+    }
+}
+
 const projects = [
     { name: 'VitalStack', status: 'Design', progress: 15 },
     { name: 'Gentle Pace Fitness', status: 'Development', progress: 75 },
@@ -229,20 +257,40 @@ function closeModal() {
     currentModalAgent = null;
 }
 
-function approveFromModal() {
+async function approveFromModal() {
     if (currentModalAgent && window.removeFromWaitingQueue) {
-        // Get the item before removing
         const waitingItems = window.getWaitingItems ? window.getWaitingItems() : [];
         const item = waitingItems.find(i => i.id === currentModalAgent);
         
         if (item) {
             const agent = window.agents.find(a => a.id === item.agentId);
+            const responseInput = document.getElementById('response-input');
+            const additionalNotes = responseInput ? responseInput.value.trim() : '';
             
-            // Remove from waiting queue
-            window.removeFromWaitingQueue(currentModalAgent);
+            // Send approval to Supabase
+            const responsePayload = {
+                item_id: currentModalAgent,
+                agent_id: item.agentId,
+                agent_name: agent ? agent.name : item.agentId,
+                response_text: additionalNotes || 'Approved',
+                task_title: item.title,
+                task_context: item.context || item.desc,
+                action: 'approved',
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
             
-            if (agent) {
-                addToFeed(agent.name.toLowerCase(), `approved: ${item.title} ✓`, '#22c55e');
+            const success = await sendToSupabase(responsePayload);
+            
+            if (success) {
+                window.removeFromWaitingQueue(currentModalAgent);
+                if (agent) {
+                    addToFeed(agent.name.toLowerCase(), `approved: ${item.title} ✓`, '#22c55e');
+                }
+                showToast(`✓ Approved - ${agent ? agent.name : 'agent'} notified`);
+            } else {
+                showToast(`⚠ Failed to send - try again`);
+                return;
             }
         }
     }
@@ -250,20 +298,40 @@ function approveFromModal() {
     renderWaitingItems();
 }
 
-function denyFromModal() {
+async function denyFromModal() {
     if (currentModalAgent && window.removeFromWaitingQueue) {
-        // Get the item before removing
         const waitingItems = window.getWaitingItems ? window.getWaitingItems() : [];
         const item = waitingItems.find(i => i.id === currentModalAgent);
         
         if (item) {
             const agent = window.agents.find(a => a.id === item.agentId);
+            const responseInput = document.getElementById('response-input');
+            const reason = responseInput ? responseInput.value.trim() : '';
             
-            // Remove from waiting queue
-            window.removeFromWaitingQueue(currentModalAgent);
+            // Send denial to Supabase
+            const responsePayload = {
+                item_id: currentModalAgent,
+                agent_id: item.agentId,
+                agent_name: agent ? agent.name : item.agentId,
+                response_text: reason || 'Denied',
+                task_title: item.title,
+                task_context: item.context || item.desc,
+                action: 'denied',
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
             
-            if (agent) {
-                addToFeed(agent.name.toLowerCase(), `denied: ${item.title}`, '#f85149');
+            const success = await sendToSupabase(responsePayload);
+            
+            if (success) {
+                window.removeFromWaitingQueue(currentModalAgent);
+                if (agent) {
+                    addToFeed(agent.name.toLowerCase(), `denied: ${item.title}`, '#f85149');
+                }
+                showToast(`✗ Denied - ${agent ? agent.name : 'agent'} notified`);
+            } else {
+                showToast(`⚠ Failed to send - try again`);
+                return;
             }
         }
     }
@@ -379,7 +447,7 @@ function insertQuickResponse(text) {
     }
 }
 
-function sendResponseFromModal() {
+async function sendResponseFromModal() {
     const input = document.getElementById('response-input');
     const response = input ? input.value.trim() : '';
     
@@ -395,29 +463,36 @@ function sendResponseFromModal() {
         if (item) {
             const agent = window.agents.find(a => a.id === item.agentId);
             
-            // Store the response (in production, this would send to the agent)
-            const responseLog = {
-                itemId: currentModalAgent,
-                agentId: item.agentId,
-                response: response,
-                timestamp: Date.now(),
-                title: item.title
+            // Build the response payload
+            const responsePayload = {
+                item_id: currentModalAgent,
+                agent_id: item.agentId,
+                agent_name: agent ? agent.name : item.agentId,
+                response_text: response,
+                task_title: item.title,
+                task_context: item.context || item.desc,
+                action: 'response',
+                status: 'pending',
+                created_at: new Date().toISOString()
             };
             
-            // Save to localStorage for now
-            const responses = JSON.parse(localStorage.getItem('calvinResponses') || '[]');
-            responses.push(responseLog);
-            localStorage.setItem('calvinResponses', JSON.stringify(responses));
+            // Send to Supabase (real connectivity)
+            showToast(`Sending to ${agent ? agent.name : 'agent'}...`);
+            const success = await sendToSupabase(responsePayload);
             
-            // Remove from waiting queue
-            window.removeFromWaitingQueue(currentModalAgent);
-            
-            if (agent) {
-                addToFeed(agent.name.toLowerCase(), `received response: "${response.substring(0, 30)}${response.length > 30 ? '...' : ''}"`, agent.color);
+            if (success) {
+                // Remove from waiting queue
+                window.removeFromWaitingQueue(currentModalAgent);
+                
+                if (agent) {
+                    addToFeed(agent.name.toLowerCase(), `received response: "${response.substring(0, 30)}${response.length > 30 ? '...' : ''}"`, agent.color);
+                }
+                
+                showToast(`✓ Response sent to ${agent ? agent.name : 'agent'}`);
+            } else {
+                showToast(`⚠ Failed to send - try again`);
+                return; // Don't close modal on failure
             }
-            
-            // Show confirmation
-            showToast(`Response sent to ${agent ? agent.name : 'agent'}`);
         }
     }
     closeModal();
