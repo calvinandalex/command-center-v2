@@ -1,0 +1,50 @@
+{
+  "todos": [
+    {
+      "id": "todo-1",
+      "title": "Create Directory Social Media Accounts",
+      "context": "Create Facebook Page and LinkedIn Company Page for 'Medicare Broker Directory'. Share access with team when ready.",
+      "agent": "Alex",
+      "priority": "high",
+      "status": "pending",
+      "created": "2026-02-12T13:08:00Z"
+    },
+    {
+      "id": "todo-2", 
+      "title": "Email Deliverability DNS Setup",
+      "context": "Work with Owen to add SPF/DKIM/DMARC records in GoDaddy for medicarebrokerdirectory.com. Owen will provide exact records once you pick email service (Mailgun or SendGrid).",
+      "agent": "Owen",
+      "priority": "high",
+      "status": "pending",
+      "created": "2026-02-12T13:06:00Z"
+    },
+    {
+      "id": "todo-3",
+      "title": "Share Lovable.dev Credentials",
+      "context": "Share Lovable.dev login with Devin for Medicare Broker Directory GitHub migration.",
+      "agent": "Devin",
+      "priority": "medium",
+      "status": "pending",
+      "created": "2026-02-12T06:22:00Z"
+    },
+    {
+      "id": "todo-4",
+      "title": "Register Forum Accounts (or delegate)",
+      "context": "Create accounts on insurance-forums.com and Reddit (u/MedicareBrokerDir) for Directory marketing.",
+      "agent": "Mark",
+      "priority": "medium",
+      "status": "pending",
+      "created": "2026-02-12T13:08:00Z"
+    },
+    {
+      "id": "todo-5",
+      "title": "Pick Email Service",
+      "context": "Choose between Mailgun or SendGrid for Directory outreach emails. Owen needs this to provide DNS records.",
+      "agent": "Owen",
+      "priority": "high",
+      "status": "pending",
+      "created": "2026-02-12T13:06:00Z"
+    }
+  ],
+  "lastUpdated": "2026-02-12T13:08:00Z"
+}

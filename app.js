@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial render
     setTimeout(() => {
         renderWaitingItems();
+        renderCalvinTodos();
         renderProjects();
         renderFeed();
         populateFilter();
@@ -145,6 +146,45 @@ function addToFeed(agentName, action, color) {
         });
         renderFeed();
     }, 60000);
+}
+
+// Load and render Calvin's to-do items from JSON file
+async function renderCalvinTodos() {
+    const container = document.getElementById('calvin-todos');
+    if (!container) return;
+    
+    try {
+        const response = await fetch('calvin-todos.json?v=' + Date.now());
+        const data = await response.json();
+        
+        const pendingTodos = data.todos.filter(t => t.status === 'pending');
+        
+        if (pendingTodos.length === 0) {
+            container.innerHTML = '<p style="color:#3fb950;padding:10px;">✓ All tasks complete!</p>';
+            return;
+        }
+        
+        container.innerHTML = pendingTodos.map(todo => {
+            const priorityClass = todo.priority === 'high' ? 'priority-high' : '';
+            return `
+                <div class="todo-item ${priorityClass}">
+                    <div class="todo-checkbox" onclick="toggleTodo('${todo.id}')">☐</div>
+                    <div class="todo-content">
+                        <h4>${todo.title}</h4>
+                        <p>${todo.context}</p>
+                        <span class="todo-agent">👤 ${todo.agent}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        container.innerHTML = '<p style="color:#666;padding:10px;">No to-do items loaded</p>';
+    }
+}
+
+function toggleTodo(todoId) {
+    // For now, just visual feedback - actual completion would need backend
+    alert('To mark complete, tell Alex to update the to-do list');
 }
 
 function renderWaitingItems() {
