@@ -349,8 +349,8 @@ function setPeriod(period) {
     renderTeamList();
 }
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize - run immediately since script loads after DOM
+function initTeam() {
     initTokenUsage();
     renderTeamList();
     
@@ -358,4 +358,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', () => setPeriod(btn.dataset.period));
     });
-});
+    
+    console.log('Team tab initialized with', Object.keys(teamProfiles).length, 'agents');
+}
+
+// Run immediately if DOM ready, otherwise wait
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTeam);
+} else {
+    initTeam();
+}
