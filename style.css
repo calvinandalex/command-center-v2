@@ -609,6 +609,19 @@ body {
     flex-shrink: 0;
 }
 
+.team-avatar-pixel {
+    width: 56px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.team-avatar-pixel svg {
+    filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
+}
+
 .avatar-initial {
     font-size: 24px;
     font-weight: bold;

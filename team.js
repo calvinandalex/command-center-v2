@@ -246,8 +246,8 @@ function renderTeamList() {
         
         return `
             <div class="team-card" onclick="showAgentProfile('${id}')">
-                <div class="team-avatar" style="background: ${profile.color}">
-                    <span class="avatar-initial">${profile.name[0]}</span>
+                <div class="team-avatar-pixel">
+                    ${renderPixelAvatar(id, profile.color)}
                 </div>
                 <div class="team-info">
                     <div class="team-name">${profile.emoji} ${profile.name}</div>
@@ -263,6 +263,56 @@ function renderTeamList() {
             </div>
         `;
     }).join('');
+}
+
+// Render pixel art avatar as inline SVG
+function renderPixelAvatar(agentId, color) {
+    // Darken color for body
+    const bodyColor = color;
+    const skinColor = '#f5d0c5';
+    const hairColor = getHairColor(agentId);
+    
+    return `
+        <svg width="48" height="56" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">
+            <!-- Shadow -->
+            <ellipse cx="24" cy="52" rx="12" ry="4" fill="rgba(0,0,0,0.3)"/>
+            <!-- Body -->
+            <rect x="12" y="28" width="24" height="20" rx="2" fill="${bodyColor}"/>
+            <!-- Head -->
+            <circle cx="24" cy="18" r="12" fill="${skinColor}"/>
+            <!-- Hair -->
+            <ellipse cx="24" cy="10" rx="10" ry="6" fill="${hairColor}"/>
+            <rect x="14" y="8" width="3" height="6" fill="${hairColor}"/>
+            <rect x="31" y="8" width="3" height="6" fill="${hairColor}"/>
+            <!-- Eyes -->
+            <rect x="18" y="15" width="4" height="4" rx="1" fill="#333"/>
+            <rect x="26" y="15" width="4" height="4" rx="1" fill="#333"/>
+            <!-- Mouth -->
+            <rect x="21" y="23" width="6" height="2" rx="1" fill="#333"/>
+        </svg>
+    `;
+}
+
+function getHairColor(agentId) {
+    const hairColors = {
+        alex: '#4a3728',
+        penny: '#8b4513',
+        owen: '#2c1810',
+        devin: '#1a1a1a',
+        denise: '#d4a574',
+        molly: '#8b0000',
+        finn: '#3d2314',
+        mark: '#1a1a1a',
+        randy: '#6b4423',
+        annie: '#d4a574',
+        ivan: '#1a1a1a',
+        tara: '#2c1810',
+        leo: '#4a3728',
+        clara: '#d4a574',
+        simon: '#666666',
+        henry: '#3d5c3d'
+    };
+    return hairColors[agentId] || '#4a3728';
 }
 
 function showAgentProfile(agentId) {
