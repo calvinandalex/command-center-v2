@@ -40,17 +40,17 @@ const layout = {
         { x: 1180, y: 60, agent: 'mark' },
         { x: 1280, y: 60, agent: 'randy' },
         
-        // Below break room - 4 desks (left side, y: 440)
-        { x: 80, y: 440, agent: 'annie' },
-        { x: 180, y: 440, agent: 'ivan' },
-        { x: 280, y: 440, agent: 'sky' },
-        { x: 380, y: 440, agent: 'leo' },
+        // Below break room - 4 desks (left side, y: 510 - same 130px gap as top)
+        { x: 80, y: 510, agent: 'annie' },
+        { x: 180, y: 510, agent: 'ivan' },
+        { x: 280, y: 510, agent: 'sky' },
+        { x: 380, y: 510, agent: 'leo' },
         
-        // Below Alex's office - 4 desks (right side, y: 440) - now 4 desks to match left
-        { x: 980, y: 440, agent: 'clara' },
-        { x: 1080, y: 440, agent: 'simon' },
-        { x: 1180, y: 440, agent: 'henry' },
-        { x: 1280, y: 440, agent: null }  // Empty desk for symmetry
+        // Below Alex's office - 4 desks (right side, y: 510) - same spacing
+        { x: 980, y: 510, agent: 'clara' },
+        { x: 1080, y: 510, agent: 'simon' },
+        { x: 1180, y: 510, agent: 'henry' },
+        { x: 1280, y: 510, agent: null }  // Empty desk for symmetry
     ],
     
     // Conference room - LARGEST room, central area - ALL ROOMS AT SAME Y
@@ -103,16 +103,16 @@ const layout = {
         ]
     },
     
-    // Calvin's Office - same size as Alex's office (300x180)
+    // Calvin's Office - same size as Alex's office (300x180), positioned below bottom desks
     calvinsOffice: {
-        x: 550, y: 500, w: 300, h: 180,
-        desk: { x: 770, y: 590 },
+        x: 550, y: 630, w: 300, h: 180,
+        desk: { x: 770, y: 720 },
         // Meeting chairs on the LEFT side of office, away from desk (like Alex's)
         meetingSpots: [
-            { x: 590, y: 540 }, { x: 640, y: 540 }, { x: 690, y: 540 },
-            { x: 590, y: 600 }, { x: 640, y: 600 }, { x: 690, y: 600 }
+            { x: 590, y: 670 }, { x: 640, y: 670 }, { x: 690, y: 670 },
+            { x: 590, y: 730 }, { x: 640, y: 730 }, { x: 690, y: 730 }
         ],
-        inside: { x: 815, y: 590 }  // Behind desk (to the right)
+        inside: { x: 815, y: 720 }  // Behind desk (to the right)
     }
 };
 
@@ -135,7 +135,7 @@ const OFFICE_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 async function loadAgentStates() {
     // Check version - if old version, reset to get new data structure
     const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '3.2'; // Calvin's office resized to match Alex's
+    const CURRENT_VERSION = '3.3'; // Bottom desks moved down to match top spacing
     
     if (version !== CURRENT_VERSION) {
         // New version - reset everything to get new defaults
