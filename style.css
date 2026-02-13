@@ -341,6 +341,11 @@ body {
 }
 
 @media (max-width: 480px) {
+    /* Add top spacing on mobile for notch/status bar */
+    body {
+        padding-top: env(safe-area-inset-top, 24px);
+    }
+    
     /* Move tabs to bottom on mobile - MUST stay fixed */
     .tabs {
         position: fixed !important;
@@ -364,6 +369,8 @@ body {
         border-top: 3px solid transparent;
         pointer-events: auto !important;
         cursor: pointer !important;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
     }
 
     .tab.active {
@@ -371,11 +378,12 @@ body {
         border-top-color: #00ff41;
     }
 
-    /* Content area - leave room for fixed bottom tabs */
+    /* Content area - leave room for fixed bottom tabs and top spacing */
     .tab-content {
-        height: calc(100vh - 70px) !important;
+        height: calc(100vh - 70px - env(safe-area-inset-top, 24px)) !important;
         margin-bottom: 70px !important;
         padding-bottom: 0 !important;
+        padding-top: 16px !important;
         overflow-y: auto !important;
     }
 
