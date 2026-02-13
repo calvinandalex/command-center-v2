@@ -69,8 +69,9 @@ const layout = {
     breakRoom: {
         x: 50, y: 320, w: 300, h: 180,
         seats: [
-            { x: 100, y: 380 }, { x: 170, y: 380 }, { x: 240, y: 380 },
-            { x: 100, y: 450 }, { x: 170, y: 450 }, { x: 240, y: 450 }
+            { x: 90, y: 370 }, { x: 150, y: 370 }, { x: 210, y: 370 }, { x: 270, y: 370 },
+            { x: 90, y: 420 }, { x: 150, y: 420 }, { x: 210, y: 420 }, { x: 270, y: 420 },
+            { x: 90, y: 470 }, { x: 150, y: 470 }, { x: 210, y: 470 }, { x: 270, y: 470 }
         ]
     },
     
@@ -651,19 +652,11 @@ function drawBreakRoom() {
     ctx.lineWidth = 3;
     ctx.strokeRect(b.x, b.y, b.w, b.h);
     
-    // Couch
-    ctx.fillStyle = '#4a4a6e';
-    ctx.fillRect(b.x + 20, b.y + 100, 120, 40);
-    
-    // Coffee table
-    ctx.fillStyle = '#3a3a4e';
-    ctx.fillRect(b.x + 160, b.y + 90, 60, 50);
-    
-    // Coffee machine
+    // Small coffee station in corner (minimal furniture for more standing room)
     ctx.fillStyle = '#8b4513';
-    ctx.fillRect(b.x + 280, b.y + 40, 40, 60);
+    ctx.fillRect(b.x + 10, b.y + 10, 30, 25);
     ctx.fillStyle = '#ff6b35';
-    ctx.fillRect(b.x + 285, b.y + 50, 10, 10);
+    ctx.fillRect(b.x + 15, b.y + 15, 8, 8);
     
     // Label - ABOVE the room so agent bubbles don't cover it
     ctx.fillStyle = '#6b7280';
