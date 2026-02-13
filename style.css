@@ -372,6 +372,26 @@ body {
         padding-bottom: calc(70px + env(safe-area-inset-bottom, 0));
     }
 
+    /* Make dashboard panels fill the screen */
+    .dashboard-grid {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 70px - env(safe-area-inset-bottom, 0));
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    .dashboard-grid .panel {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+    
+    /* Action items panel takes more space */
+    .dashboard-grid .action-panel {
+        flex: 2;
+    }
+
     .team-grid {
         grid-template-columns: 1fr;
     }
