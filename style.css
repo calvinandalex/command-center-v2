@@ -354,6 +354,7 @@ body {
         border-bottom: none;
         border-top: 3px solid #1a1a2e;
         background: #12121f;
+        pointer-events: auto !important;
     }
 
     .tab {
@@ -361,6 +362,8 @@ body {
         font-size: 10px;
         border-bottom: none;
         border-top: 3px solid transparent;
+        pointer-events: auto !important;
+        cursor: pointer !important;
     }
 
     .tab.active {
@@ -370,9 +373,9 @@ body {
 
     /* Content area - leave room for fixed bottom tabs */
     .tab-content {
-        height: auto !important;
-        max-height: calc(100vh - 70px) !important;
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)) !important;
+        height: calc(100vh - 70px) !important;
+        margin-bottom: 70px !important;
+        padding-bottom: 0 !important;
         overflow-y: auto !important;
     }
 
