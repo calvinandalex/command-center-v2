@@ -40,7 +40,7 @@ const layout = {
         // Second row
         { x: 80, y: 180, agent: 'annie' },
         { x: 180, y: 180, agent: 'ivan' },
-        { x: 280, y: 180, agent: 'tara' },
+        { x: 280, y: 180, agent: 'sky' },
         { x: 380, y: 180, agent: 'leo' },
         { x: 900, y: 180, agent: 'clara' },
         { x: 1000, y: 180, agent: 'simon' },
