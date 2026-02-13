@@ -427,9 +427,14 @@ function updateAgentPositions() {
         
         let target;
         
+        // Alex always stays in his own office - never goes to Calvin's
+        if (agent.id === 'alex') {
+            target = layout.alexOffice.desk;
+            agent.needsCalvin = false;
+        }
         // If agent needs Calvin's attention, go to his office (regardless of current state)
         // Unless they're already in a meeting or with Alex
-        if (needsCalvin.has(agent.id) && agent.state !== 'meeting' && agent.state !== 'withAlex') {
+        else if (needsCalvin.has(agent.id) && agent.state !== 'meeting' && agent.state !== 'withAlex') {
             target = layout.calvinsOffice.meetingSpots[waitIdx % layout.calvinsOffice.meetingSpots.length];
             waitIdx++;
             agent.needsCalvin = true; // Flag for visual indicator
