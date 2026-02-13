@@ -5,8 +5,8 @@
 const SUPABASE_URL = 'https://wfwglzrsuuqidscdqgao.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmd2dsenJzdXVxaWRzY2RxZ2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTI4MDcsImV4cCI6MjA4NTM4ODgwN30.Tpnv0rJBE1WCmdpt-yHzLIbnNrpriFeAJQeY2y33VlM';
 
-// Create Supabase client for realtime
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Create Supabase client for realtime (named 'sb' to avoid conflict with CDN's global 'supabase')
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Cache for todos from Supabase
 let cachedTodos = [];
@@ -14,7 +14,7 @@ let cachedTodos = [];
 // Fetch todos from Supabase
 async function fetchTodosFromSupabase() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await sb
             .from('calvin_todos')
             .select('*')
             .order('created', { ascending: true });
@@ -34,7 +34,7 @@ async function fetchTodosFromSupabase() {
 
 // Subscribe to realtime updates on todos
 function subscribeToTodosRealtime() {
-    supabase
+    sb
         .channel('calvin_todos_changes')
         .on('postgres_changes', 
             { event: '*', schema: 'public', table: 'calvin_todos' },
@@ -398,7 +398,7 @@ async function completeTodo(todoId) {
     const notes = responseInput ? responseInput.value.trim() : '';
     
     // Update todo status directly in Supabase (realtime will auto-update)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await sb
         .from('calvin_todos')
         .update({
             status: 'complete',
