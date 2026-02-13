@@ -6,8 +6,11 @@
       "context": "Create Facebook Page and LinkedIn Company Page for 'Medicare Broker Directory'. Share access with team when ready.",
       "agent": "Alex",
       "priority": "high",
-      "status": "pending",
-      "created": "2026-02-12T13:08:00Z"
+      "status": "complete",
+      "created": "2026-02-12T13:08:00Z",
+      "completedAt": "2026-02-13T17:37:00Z",
+      "completedBy": "Calvin",
+      "notes": "Facebook Page created, Alex has admin access. LinkedIn Page created, Alex access pending (account too new)."
     },
     {
       "id": "todo-2", 
@@ -33,8 +36,11 @@
       "context": "Create accounts on insurance-forums.com and Reddit (u/MedicareBrokerDir) for Directory marketing.",
       "agent": "Mark",
       "priority": "medium",
-      "status": "pending",
-      "created": "2026-02-12T13:08:00Z"
+      "status": "complete",
+      "created": "2026-02-12T13:08:00Z",
+      "completedAt": "2026-02-13T17:37:38Z",
+      "completedBy": "Calvin",
+      "notes": "Insurance Forums (MedicareBrokerDir) - pending admin approval. Reddit (MedicareBrokerDir) - active."
     },
     {
       "id": "todo-5",
@@ -46,5 +52,5 @@
       "created": "2026-02-12T13:06:00Z"
     }
   ],
-  "lastUpdated": "2026-02-12T13:08:00Z"
+  "lastUpdated": "2026-02-13T17:38:00Z"
 }
