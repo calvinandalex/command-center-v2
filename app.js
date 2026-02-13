@@ -234,10 +234,13 @@ async function renderActionItems() {
         const typeIcon = item.isBlocking ? '🔴' : '📝';
         const typeLabel = item.isBlocking ? 'Blocking' : 'To-do';
         const priorityClass = item.priority === 'high' ? 'priority-high' : '';
-        const clickHandler = item.type === 'waiting' ? `onclick="showItemDetail('${item.id}')"` : '';
+        // Make ALL items clickable - waiting items use showItemDetail, todos use showTodoDetail
+        const clickHandler = item.type === 'waiting' 
+            ? `onclick="showItemDetail('${item.id}')"` 
+            : `onclick="showTodoDetail('${item.id}')"`;
         
         return `
-            <div class="action-item ${priorityClass}" ${clickHandler}>
+            <div class="action-item ${priorityClass}" ${clickHandler} style="cursor:pointer;">
                 <div class="action-item-header">
                     <span class="action-type ${item.isBlocking ? 'blocking' : 'todo'}">${typeIcon} ${typeLabel}</span>
                     ${timeAgo ? `<span class="action-time">${timeAgo}</span>` : ''}
@@ -245,7 +248,7 @@ async function renderActionItems() {
                 <h4>${item.title}</h4>
                 <p>${item.desc}</p>
                 <span class="action-agent">👤 ${item.agent}</span>
-                ${item.type === 'waiting' ? '<p class="click-hint">Click for details →</p>' : ''}
+                <p class="click-hint">Click for details →</p>
             </div>
         `;
     }).join('');
@@ -253,6 +256,158 @@ async function renderActionItems() {
 
 function toggleTodo(todoId) {
     alert('To mark complete, tell Alex to update the to-do list');
+}
+
+// Show detail modal for to-do items
+async function showTodoDetail(todoId) {
+    let todoItems = [];
+    try {
+        const response = await fetch('calvin-todos.json?v=' + Date.now());
+        const data = await response.json();
+        todoItems = data.todos;
+    } catch (err) {
+        console.error('Could not load todos:', err);
+        return;
+    }
+    
+    const item = todoItems.find(t => t.id === todoId);
+    if (!item) return;
+    
+    const agent = window.agents?.find(a => a.name.toLowerCase() === item.agent?.toLowerCase());
+    
+    currentModalAgent = todoId; // Store todo ID
+    
+    const modalBody = document.getElementById('modal-body');
+    
+    modalBody.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-avatar" style="background:${agent?.color || '#6366f1'}">${(item.agent || 'TO').substring(0,2).toUpperCase()}</div>
+            <div>
+                <div class="modal-title">${item.title}</div>
+                <div class="modal-subtitle">${item.agent || 'Team'} — ${item.priority || 'normal'} priority</div>
+            </div>
+        </div>
+        
+        <div class="modal-section">
+            <h4>📋 Context</h4>
+            <p>${item.context || 'No additional context provided.'}</p>
+        </div>
+        
+        ${item.options ? `
+        <div class="modal-section">
+            <h4>🔄 Options</h4>
+            <ul>
+                ${item.options.map(opt => `<li>${opt}</li>`).join('')}
+            </ul>
+        </div>
+        ` : ''}
+        
+        <div class="response-section">
+            <h4>💬 Your Response to ${item.agent || 'the team'}</h4>
+            <textarea id="response-input" class="response-input" placeholder="Provide your decision, answer, or feedback..."></textarea>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn-large btn-send" onclick="sendTodoResponse('${todoId}')">📤 Send Response</button>
+            <button class="btn-large btn-approve-large" onclick="completeTodo('${todoId}')">✓ Mark Complete</button>
+            <button class="btn-large btn-deny" onclick="closeModal()">Cancel</button>
+        </div>
+    `;
+    
+    document.getElementById('detail-modal').classList.remove('hidden');
+}
+
+// Send response to a todo item
+async function sendTodoResponse(todoId) {
+    const responseInput = document.getElementById('response-input');
+    const responseText = responseInput ? responseInput.value.trim() : '';
+    
+    if (!responseText) {
+        showToast('⚠ Please enter a response');
+        return;
+    }
+    
+    let todoItems = [];
+    try {
+        const response = await fetch('calvin-todos.json?v=' + Date.now());
+        const data = await response.json();
+        todoItems = data.todos;
+    } catch (err) {
+        console.error('Could not load todos:', err);
+        return;
+    }
+    
+    const item = todoItems.find(t => t.id === todoId);
+    if (!item) return;
+    
+    const agent = window.agents?.find(a => a.name.toLowerCase() === item.agent?.toLowerCase());
+    
+    // Send response to Supabase
+    const responsePayload = {
+        item_id: todoId,
+        item_type: 'todo',
+        agent_id: agent?.id || item.agent,
+        agent_name: item.agent || 'Team',
+        response_text: responseText,
+        task_title: item.title,
+        task_context: item.context || '',
+        action: 'response',
+        status: 'pending',
+        created_at: new Date().toISOString()
+    };
+    
+    const success = await sendToSupabase(responsePayload);
+    
+    if (success) {
+        addToFeed(item.agent?.toLowerCase() || 'team', `Calvin responded to: ${item.title}`, '#3b82f6');
+        showToast(`✓ Response sent to ${item.agent || 'team'}`);
+        closeModal();
+    } else {
+        showToast(`⚠ Failed to send - try again`);
+    }
+}
+
+// Mark a todo as complete
+async function completeTodo(todoId) {
+    let todoItems = [];
+    try {
+        const response = await fetch('calvin-todos.json?v=' + Date.now());
+        const data = await response.json();
+        todoItems = data.todos;
+    } catch (err) {
+        console.error('Could not load todos:', err);
+        return;
+    }
+    
+    const item = todoItems.find(t => t.id === todoId);
+    if (!item) return;
+    
+    const responseInput = document.getElementById('response-input');
+    const notes = responseInput ? responseInput.value.trim() : '';
+    
+    // Send completion to Supabase
+    const responsePayload = {
+        item_id: todoId,
+        item_type: 'todo',
+        agent_id: item.agent,
+        agent_name: item.agent || 'Team',
+        response_text: notes || 'Marked complete',
+        task_title: item.title,
+        task_context: item.context || '',
+        action: 'completed',
+        status: 'pending',
+        created_at: new Date().toISOString()
+    };
+    
+    const success = await sendToSupabase(responsePayload);
+    
+    if (success) {
+        addToFeed(item.agent?.toLowerCase() || 'team', `completed: ${item.title} ✓`, '#22c55e');
+        showToast(`✓ Marked complete - Alex will update the list`);
+        closeModal();
+    } else {
+        showToast(`⚠ Failed to send - try again`);
+    }
 }
 
 function getTimeAgo(timestamp) {
