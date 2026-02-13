@@ -266,19 +266,35 @@ body {
 }
 
 @media (max-width: 480px) {
-    /* Add top padding for mobile browser chrome */
+    /* Move tabs to bottom on mobile */
     .tabs {
-        padding-top: 24px;
-        padding-top: calc(env(safe-area-inset-top, 12px) + 12px);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding-top: 0;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        border-bottom: none;
+        border-top: 3px solid #1a1a2e;
+        background: #12121f;
     }
 
     .tab {
         padding: 16px 16px;
         font-size: 10px;
+        border-bottom: none;
+        border-top: 3px solid transparent;
+    }
+
+    .tab.active {
+        border-bottom: none;
+        border-top-color: #00ff41;
     }
 
     .tab-content {
-        height: calc(100vh - 85px) !important;
+        height: calc(100vh - 70px) !important;
+        padding-bottom: calc(70px + env(safe-area-inset-bottom, 0));
     }
 
     .team-grid {
