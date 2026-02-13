@@ -26,28 +26,30 @@ const agents = [
 
 // Layout with Alex's Office added
 const layout = {
-    // Individual desks - balanced layout
+    // Individual desks - balanced layout (4 above + 4 below on each side)
     desks: [
-        // Top row - only 1 desk (molly) stays on top right
+        // Above break room - 4 desks (left side, y: 80)
+        { x: 80, y: 80, agent: 'penny' },
+        { x: 180, y: 80, agent: 'owen' },
+        { x: 280, y: 80, agent: 'devin' },
+        { x: 380, y: 80, agent: 'denise' },
+        
+        // Above Alex's office - 4 desks (right side, y: 80)
         { x: 900, y: 80, agent: 'molly' },
+        { x: 1000, y: 80, agent: 'finn' },
+        { x: 1100, y: 80, agent: 'mark' },
+        { x: 1200, y: 80, agent: 'randy' },
         
-        // Below break room - 8 desks (2 rows of 4)
+        // Below break room - 4 desks (left side, y: 520)
         { x: 80, y: 520, agent: 'annie' },
-        { x: 160, y: 520, agent: 'ivan' },
-        { x: 240, y: 520, agent: 'sky' },
-        { x: 320, y: 520, agent: 'leo' },
-        { x: 80, y: 600, agent: 'penny' },
-        { x: 160, y: 600, agent: 'owen' },
-        { x: 240, y: 600, agent: 'devin' },
-        { x: 320, y: 600, agent: 'denise' },
+        { x: 180, y: 520, agent: 'ivan' },
+        { x: 280, y: 520, agent: 'sky' },
+        { x: 380, y: 520, agent: 'leo' },
         
-        // Below Alex's office - 6 desks (2 rows of 3)
+        // Below Alex's office - 3 desks (right side, y: 520)
         { x: 1080, y: 520, agent: 'clara' },
         { x: 1180, y: 520, agent: 'simon' },
-        { x: 1280, y: 520, agent: 'henry' },
-        { x: 1080, y: 600, agent: 'finn' },
-        { x: 1180, y: 600, agent: 'mark' },
-        { x: 1280, y: 600, agent: 'randy' }
+        { x: 1280, y: 520, agent: 'henry' }
     ],
     
     // Conference room - LARGEST room, central area
