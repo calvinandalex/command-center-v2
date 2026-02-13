@@ -24,94 +24,95 @@ const agents = [
     { id: 'henry', name: 'Henry', role: 'Health', color: '#84cc16' }
 ].map(a => ({ ...a, x: 100, y: 400, targetX: 100, targetY: 400, state: 'idle', task: '' }));
 
-// Layout with Alex's Office added
+// Layout with rooms horizontally aligned
 const layout = {
     // Individual desks - balanced layout (4 above + 4 below on each side)
     desks: [
-        // Above break room - 4 desks (left side, y: 80)
-        { x: 80, y: 80, agent: 'penny' },
-        { x: 180, y: 80, agent: 'owen' },
-        { x: 280, y: 80, agent: 'devin' },
-        { x: 380, y: 80, agent: 'denise' },
+        // Above break room - 4 desks (left side, y: 60)
+        { x: 80, y: 60, agent: 'penny' },
+        { x: 180, y: 60, agent: 'owen' },
+        { x: 280, y: 60, agent: 'devin' },
+        { x: 380, y: 60, agent: 'denise' },
         
-        // Above Alex's office - 4 desks (right side, y: 80)
-        { x: 900, y: 80, agent: 'molly' },
-        { x: 1000, y: 80, agent: 'finn' },
-        { x: 1100, y: 80, agent: 'mark' },
-        { x: 1200, y: 80, agent: 'randy' },
+        // Above Alex's office - 4 desks (right side, y: 60) - tighter spacing
+        { x: 980, y: 60, agent: 'molly' },
+        { x: 1080, y: 60, agent: 'finn' },
+        { x: 1180, y: 60, agent: 'mark' },
+        { x: 1280, y: 60, agent: 'randy' },
         
-        // Below break room - 4 desks (left side, y: 520)
-        { x: 80, y: 520, agent: 'annie' },
-        { x: 180, y: 520, agent: 'ivan' },
-        { x: 280, y: 520, agent: 'sky' },
-        { x: 380, y: 520, agent: 'leo' },
+        // Below break room - 4 desks (left side, y: 440)
+        { x: 80, y: 440, agent: 'annie' },
+        { x: 180, y: 440, agent: 'ivan' },
+        { x: 280, y: 440, agent: 'sky' },
+        { x: 380, y: 440, agent: 'leo' },
         
-        // Below Alex's office - 3 desks (right side, y: 520)
-        { x: 1080, y: 520, agent: 'clara' },
-        { x: 1180, y: 520, agent: 'simon' },
-        { x: 1280, y: 520, agent: 'henry' }
+        // Below Alex's office - 4 desks (right side, y: 440) - now 4 desks to match left
+        { x: 980, y: 440, agent: 'clara' },
+        { x: 1080, y: 440, agent: 'simon' },
+        { x: 1180, y: 440, agent: 'henry' },
+        { x: 1280, y: 440, agent: null }  // Empty desk for symmetry
     ],
     
-    // Conference room - LARGEST room, central area
+    // Conference room - LARGEST room, central area - ALL ROOMS AT SAME Y
     conference: {
-        x: 450, y: 280, w: 500, h: 220,
-        // Table centered at 700, 390 (center of room)
-        table: { x: 700, y: 390, w: 200, h: 80 },
+        x: 450, y: 180, w: 500, h: 200,
+        // Table centered at 700, 280 (center of room)
+        table: { x: 700, y: 280, w: 200, h: 80 },
         // Seats AROUND the table, not on it
         seats: [
             // Top row (above table)
-            { x: 620, y: 330 }, { x: 700, y: 330 }, { x: 780, y: 330 },
+            { x: 620, y: 220 }, { x: 700, y: 220 }, { x: 780, y: 220 },
             // Bottom row (below table)
-            { x: 620, y: 450 }, { x: 700, y: 450 }, { x: 780, y: 450 },
+            { x: 620, y: 340 }, { x: 700, y: 340 }, { x: 780, y: 340 },
             // Left side
-            { x: 570, y: 390 },
+            { x: 570, y: 280 },
             // Right side
-            { x: 830, y: 390 }
+            { x: 830, y: 280 }
         ]
     },
     
-    // Break room - left side (same size as offices)
-    // Water cooler is at center (200, 400), seats arranged around it
+    // Break room - left side - SAME Y as other rooms (vertically centered)
+    // Water cooler is at center, seats arranged around it
     breakRoom: {
-        x: 50, y: 320, w: 300, h: 180,
+        x: 50, y: 190, w: 300, h: 180,
         seats: [
             // Circle around the water cooler
-            { x: 200, y: 355 },  // top
-            { x: 245, y: 370 },  // top-right
-            { x: 265, y: 410 },  // right
-            { x: 245, y: 450 },  // bottom-right
-            { x: 200, y: 465 },  // bottom
-            { x: 155, y: 450 },  // bottom-left
-            { x: 135, y: 410 },  // left
-            { x: 155, y: 370 },  // top-left
+            { x: 200, y: 225 },  // top
+            { x: 245, y: 240 },  // top-right
+            { x: 265, y: 280 },  // right
+            { x: 245, y: 320 },  // bottom-right
+            { x: 200, y: 335 },  // bottom
+            { x: 155, y: 320 },  // bottom-left
+            { x: 135, y: 280 },  // left
+            { x: 155, y: 240 },  // top-left
             // Outer ring for overflow
-            { x: 100, y: 355 },  { x: 300, y: 355 },
-            { x: 100, y: 465 },  { x: 300, y: 465 }
+            { x: 100, y: 225 },  { x: 300, y: 225 },
+            { x: 100, y: 335 },  { x: 300, y: 335 }
         ]
     },
     
-    // Alex's Office (CEO) - right side (same size as break room and Calvin's)
+    // Alex's Office (CEO) - right side - SAME Y as break room (horizontally aligned)
     alexOffice: {
-        x: 1050, y: 320, w: 300, h: 180,
-        desk: { x: 1270, y: 410 },
-        seat: { x: 1315, y: 410 },  // Behind desk (to the right)
+        x: 1050, y: 190, w: 300, h: 180,
+        desk: { x: 1270, y: 280 },
+        seat: { x: 1315, y: 280 },  // Behind desk (to the right)
         // 6 meeting chairs on the LEFT side of office, away from desk
         meetingSpots: [
-            { x: 1090, y: 360 }, { x: 1140, y: 360 }, { x: 1190, y: 360 },
-            { x: 1090, y: 420 }, { x: 1140, y: 420 }, { x: 1190, y: 420 }
+            { x: 1090, y: 230 }, { x: 1140, y: 230 }, { x: 1190, y: 230 },
+            { x: 1090, y: 290 }, { x: 1140, y: 290 }, { x: 1190, y: 290 }
         ]
     },
     
-    // Calvin's office - bottom center (same size as Alex's and break room)
+    // Calvin's corner - small area bottom-center (less prominent, no full office)
     calvinsOffice: {
-        x: 550, y: 560, w: 300, h: 180,
-        desk: { x: 770, y: 660 },
-        // Meeting chairs on the LEFT side of office, away from desk
+        x: 600, y: 520, w: 200, h: 120,
+        desk: { x: 700, y: 580 },
+        // Meeting chairs in front of desk
         meetingSpots: [
-            { x: 600, y: 610 }, { x: 660, y: 610 },
-            { x: 600, y: 680 }, { x: 660, y: 680 }
+            { x: 640, y: 560 }, { x: 700, y: 560 },
+            { x: 640, y: 620 }, { x: 700, y: 620 }
         ],
-        inside: { x: 820, y: 660 }
+        inside: { x: 760, y: 580 }
     }
 };
 
