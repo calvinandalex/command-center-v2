@@ -131,30 +131,66 @@ let waitingQueue = [];
 const OFFICE_SUPABASE_URL = 'https://wfwglzrsuuqidscdqgao.supabase.co';
 const OFFICE_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmd2dsenJzdXVxaWRzY2RxZ2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTI4MDcsImV4cCI6MjA4NTM4ODgwN30.Tpnv0rJBE1WCmdpt-yHzLIbnNrpriFeAJQeY2y33VlM';
 
-// Load initial states from localStorage or use defaults
+// Supabase client for realtime subscriptions
+let officeSB = null;
+
+// Load initial states from Supabase (with localStorage fallback)
 async function loadAgentStates() {
-    // Check version - if old version, reset to get new data structure
-    const version = localStorage.getItem('commandCenterVersion');
-    const CURRENT_VERSION = '3.3'; // Bottom desks moved down to match top spacing
-    
-    if (version !== CURRENT_VERSION) {
-        // New version - reset everything to get new defaults
-        console.log('Command Center updated - resetting to new defaults');
-        localStorage.removeItem('agentStates');
-        localStorage.removeItem('waitingQueue');
-        localStorage.setItem('commandCenterVersion', CURRENT_VERSION);
-    }
-    
-    const saved = localStorage.getItem('agentStates');
-    if (saved) {
+    // Initialize Supabase client if available
+    if (window.supabase && window.supabase.createClient && !officeSB) {
         try {
-            agentStates = JSON.parse(saved);
-        } catch(e) {
-            agentStates = getDefaultStates();
+            officeSB = window.supabase.createClient(OFFICE_SUPABASE_URL, OFFICE_SUPABASE_KEY);
+            console.log('Office Supabase client initialized');
+        } catch (err) {
+            console.error('Failed to create office Supabase client:', err);
         }
-    } else {
-        agentStates = getDefaultStates();
     }
+    
+    // Try to load states from Supabase first
+    let loadedFromSupabase = false;
+    try {
+        const response = await fetch(`${OFFICE_SUPABASE_URL}/rest/v1/agent_states?select=*`, {
+            headers: {
+                'apikey': OFFICE_SUPABASE_KEY,
+                'Authorization': `Bearer ${OFFICE_SUPABASE_KEY}`
+            }
+        });
+        
+        if (response.ok) {
+            const states = await response.json();
+            if (states && states.length > 0) {
+                // Convert array to object keyed by agent_id
+                agentStates = {};
+                states.forEach(s => {
+                    agentStates[s.agent_id] = {
+                        state: s.state || 'idle',
+                        task: s.task || ''
+                    };
+                });
+                loadedFromSupabase = true;
+                console.log(`Loaded ${states.length} agent states from Supabase`);
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to load from Supabase, using defaults:', err);
+    }
+    
+    // If no Supabase data, all agents start idle (in breakroom)
+    if (!loadedFromSupabase) {
+        agentStates = {};
+        agents.forEach(agent => {
+            // Alex stays in his office, everyone else starts idle
+            if (agent.id === 'alex') {
+                agentStates[agent.id] = { state: 'alexOffice', task: 'Coordinating team' };
+            } else {
+                agentStates[agent.id] = { state: 'idle', task: '' };
+            }
+        });
+        console.log('Using default states (all agents idle in breakroom)');
+    }
+    
+    // Subscribe to realtime updates
+    subscribeToAgentStatesRealtime();
     
     // Load waiting queue - always start with defaults, then filter by Supabase responses
     waitingQueue = getDefaultWaitingQueue();
@@ -183,22 +219,49 @@ async function loadAgentStates() {
         }
     } catch (err) {
         console.error('Failed to check Supabase for responses:', err);
-        // Continue with localStorage fallback
-        const savedQueue = localStorage.getItem('waitingQueue');
-        if (savedQueue) {
-            try {
-                waitingQueue = JSON.parse(savedQueue);
-            } catch(e) {
-                // Keep the default queue already loaded
-            }
-        }
     }
-    
-    // Save the filtered state
-    localStorage.setItem('waitingQueue', JSON.stringify(waitingQueue));
     
     // Sync visual states - agents with items in queue should show as waiting
     syncVisualStatesWithQueue();
+}
+
+// Subscribe to realtime updates from Supabase agent_states table
+function subscribeToAgentStatesRealtime() {
+    if (!officeSB) {
+        console.warn('Supabase client not available - skipping realtime subscription for agent states');
+        return;
+    }
+    
+    officeSB
+        .channel('agent_states_changes')
+        .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'agent_states' },
+            (payload) => {
+                console.log('Realtime agent state update:', payload);
+                
+                if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+                    const newState = payload.new;
+                    if (newState && newState.agent_id) {
+                        agentStates[newState.agent_id] = {
+                            state: newState.state || 'idle',
+                            task: newState.task || ''
+                        };
+                        updateAgentPositions();
+                        console.log(`${newState.agent_id} moved to ${newState.state}: ${newState.task}`);
+                    }
+                } else if (payload.eventType === 'DELETE') {
+                    const oldState = payload.old;
+                    if (oldState && oldState.agent_id) {
+                        // On delete, agent goes back to idle
+                        agentStates[oldState.agent_id] = { state: 'idle', task: '' };
+                        updateAgentPositions();
+                    }
+                }
+            }
+        )
+        .subscribe((status) => {
+            console.log('Agent states realtime subscription status:', status);
+        });
 }
 
 function syncVisualStatesWithQueue() {
@@ -367,38 +430,57 @@ I need to know what's where before I can connect.`,
     ];
 }
 
-function getDefaultStates() {
-    // Agent visual states are separate from waiting queue
-    // An agent can be working/meeting and still have items in Calvin's queue
-    return {
-        alex: { state: 'alexOffice', task: 'Coordinating team' },
-        penny: { state: 'working', task: 'Managing calendars' },
-        owen: { state: 'working', task: 'Processing applications' },
-        devin: { state: 'working', task: 'Building Command Center' },
-        denise: { state: 'meeting', task: 'Design review' },
-        molly: { state: 'idle', task: '' },
-        finn: { state: 'working', task: 'Preparing financial reports' },  // Has item in queue but working
-        mark: { state: 'working', task: 'Marketing plan' },
-        randy: { state: 'meeting', task: 'Research review' },
-        annie: { state: 'idle', task: '' },
-        ivan: { state: 'working', task: 'Market analysis' },  // Has item in queue but working
-        tara: { state: 'idle', task: '' },
-        leo: { state: 'waiting', task: 'Legal pages need review' },
-        clara: { state: 'working', task: 'Support tickets' },
-        simon: { state: 'withAlex', task: 'Security review' },
-        henry: { state: 'idle', task: '' }
-    };
-}
-
 function saveAgentStates() {
     // Sync before saving to ensure queue matches visual state
     syncVisualStatesWithQueue();
     
-    localStorage.setItem('agentStates', JSON.stringify(agentStates));
-    localStorage.setItem('waitingQueue', JSON.stringify(waitingQueue));
     // Dispatch event for Command Center to pick up
     window.dispatchEvent(new CustomEvent('agentStatesUpdated', { detail: agentStates }));
     window.dispatchEvent(new CustomEvent('waitingQueueUpdated', { detail: waitingQueue }));
+}
+
+// Update a single agent's state in Supabase
+async function updateAgentStateInSupabase(agentId, state, task = '') {
+    try {
+        const response = await fetch(`${OFFICE_SUPABASE_URL}/rest/v1/agent_states?agent_id=eq.${agentId}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': OFFICE_SUPABASE_KEY,
+                'Authorization': `Bearer ${OFFICE_SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                state: state,
+                task: task,
+                updated_at: new Date().toISOString()
+            })
+        });
+        
+        if (!response.ok) {
+            // If PATCH fails (row doesn't exist), try INSERT
+            const insertResponse = await fetch(`${OFFICE_SUPABASE_URL}/rest/v1/agent_states`, {
+                method: 'POST',
+                headers: {
+                    'apikey': OFFICE_SUPABASE_KEY,
+                    'Authorization': `Bearer ${OFFICE_SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    agent_id: agentId,
+                    state: state,
+                    task: task,
+                    updated_at: new Date().toISOString()
+                })
+            });
+            return insertResponse.ok;
+        }
+        return true;
+    } catch (err) {
+        console.error('Failed to update agent state in Supabase:', err);
+        return false;
+    }
 }
 
 async function initOffice() {
@@ -426,8 +508,7 @@ async function initOffice() {
         updateAgentPositions();
     });
     
-    // Simulate state changes every 8 seconds (in production, this would be real data)
-    setInterval(simulateStateChanges, 8000);
+    // Real-time updates now come from Supabase subscription (no more simulation)
 }
 
 function updateAgentPositions() {
@@ -504,47 +585,6 @@ function updateAgentPositions() {
         agent.targetX = target.x;
         agent.targetY = target.y;
     });
-}
-
-function simulateStateChanges() {
-    // In production, this would poll from a real data source
-    // For now, occasional random changes to show the system works
-    const states = ['working', 'meeting', 'idle', 'waiting', 'withAlex'];
-    const tasks = {
-        working: ['Processing tasks', 'Analyzing data', 'Writing report', 'Reviewing docs', 'Building features'],
-        meeting: ['Team sync', 'Project review', 'Planning session', 'Collaboration'],
-        idle: ['', 'Coffee break', 'Stretching', ''],
-        waiting: ['Needs approval', 'Question for Calvin', 'Blocked on decision', 'Awaiting input'],
-        withAlex: ['1:1 meeting', 'Project discussion', 'Status update']
-    };
-    
-    // Change 1-2 random agents (but not Alex)
-    const numChanges = Math.floor(Math.random() * 2) + 1;
-    const nonAlexAgents = agents.filter(a => a.id !== 'alex');
-    
-    for (let i = 0; i < numChanges; i++) {
-        const agent = nonAlexAgents[Math.floor(Math.random() * nonAlexAgents.length)];
-        const newState = states[Math.floor(Math.random() * states.length)];
-        const taskList = tasks[newState];
-        const newTask = taskList[Math.floor(Math.random() * taskList.length)];
-        
-        // Generate waiting item if waiting
-        let waitingItem = null;
-        if (newState === 'waiting') {
-            const waitingReasons = [
-                { title: 'Approval Needed', desc: 'Requires sign-off to proceed' },
-                { title: 'Question', desc: 'Need clarification on project scope' },
-                { title: 'Access Request', desc: 'Need credentials or permissions' },
-                { title: 'Decision Required', desc: 'Multiple options, need direction' }
-            ];
-            waitingItem = waitingReasons[Math.floor(Math.random() * waitingReasons.length)];
-        }
-        
-        agentStates[agent.id] = { state: newState, task: newTask, waitingItem };
-    }
-    
-    saveAgentStates();
-    updateAgentPositions();
 }
 
 function gameLoop() {
@@ -970,10 +1010,12 @@ function updateInfoPanel() {
 }
 
 // Public API
-window.moveAgentTo = function(agentId, newState, task = '', waitingItem = null) {
+window.moveAgentTo = async function(agentId, newState, task = '', waitingItem = null) {
     agentStates[agentId] = { state: newState, task, waitingItem };
     saveAgentStates();
     updateAgentPositions();
+    // Also update Supabase (realtime will broadcast to other clients)
+    await updateAgentStateInSupabase(agentId, newState, task);
 };
 
 window.getAgentStates = function() {
